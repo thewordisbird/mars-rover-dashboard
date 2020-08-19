@@ -25,9 +25,6 @@ const updateStore = (store, newState) => {
 // Render a state. This inject html into the root div
 const render = async (root, state) => {
     root.innerHTML = App(state)
-    // let { apod } = state
-    // ImageOfTheDay(apod)
-    // console.log(`Application State: ${state.apod}`)
 }
 
 
@@ -130,19 +127,26 @@ const RoverPhotos = () => {
     // reduce photos to formatted html string
     // console.log(store)
     const htmlPhotoString = store.photos.photos.photos.reduce((htmlString, currentPhoto) => {
+        let imgHeight = 
+        
         htmlString += `
         <div class="col mb-4">
             <div class="card h-100">
-                <img src="${currentPhoto.img_src}" class="card-img-top" alt="...">
+                <div class="card-img-frame">
+                    <img src="${currentPhoto.img_src}" class="card-img-top" alt="...">
+                </div>
+        
+                
                 <div class="card-body">
-                <ul>
-                    <li>Camera: ${currentPhoto.camera.full_name}</li>
-                    <li>Sol: ${currentPhoto.sol}</li>
-                    <li>Earth Date: ${currentPhoto.earth_date}
-                </ul>
+                    <ul>
+                        <li>Camera: ${currentPhoto.camera.full_name}</li>
+                        <li>Sol: ${currentPhoto.sol}</li>
+                        <li>Earth Date: ${currentPhoto.earth_date}
+                    </ul>
                 </div>
             </div>
         </div>`
+        console.log(htmlString)
         return htmlString
     }, "")
    

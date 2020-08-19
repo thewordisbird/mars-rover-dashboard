@@ -1,3 +1,39 @@
+/* ------------------  GENERAL  --------------------- */
+
+
+.card-img-frame {
+    width: 348px;
+    height: 348px;
+    border-bottom: 1px solid rgba(0,0,0,.125);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card-img-frame img{
+    width: 100%;
+}
+.card-body ul{
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.frame{  
+    width: 348px;
+    height: 348px;s
+    border: 1px solid black;
+    vertical-align: middle;
+    text-align: center;
+    display: table-cell;
+}    
+img{
+    max-width: 100%;
+    max-height: 100%;
+    display: block;
+    margin: 0 auto;
+}
+
 /* -------------------  MOBILE  --------------------- */
 
 body {
