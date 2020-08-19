@@ -9,6 +9,7 @@ let store = {
     rover: "Curiosity",
     sol: null,
     photos: [],
+    manifest: null,
     page: 1
 }
 
@@ -35,16 +36,18 @@ const render = async (root, state) => {
 // Called by render
 const App = (state) => {
     let { rovers, apod, rover } = state
-    console.log(`Rovers: ${rovers}, apod: ${Object.keys(apod)}`)
+    // console.log(`Rovers: ${rovers}, apod: ${Object.keys(apod)}`)
     RoverPhotos(rover)
     return `
         <header></header>
         <main>
-
-            <section>${RoverPhotos(rover)}</section>`+
+            <section>${RoverJumbo(rover)}</section>
+            <section>${RoverPhotos(rover)}</section>
+            
+            `+
 
             // <section>${ImageOfTheDay(apod)}</section>
-            // <section>${RoverInformation(rover)}</section>
+            // 
             
             // <section>${RoverPhotoHistory(rover)}</section>
         `</main>
@@ -54,7 +57,6 @@ const App = (state) => {
 
 // listening for load event because page should load before any JS is called
 window.addEventListener('load', () => {
-    console.log('looping ...')
     render(root, store)
 })
 
@@ -74,15 +76,15 @@ const Greeting = (name) => {
 
 // Example of a pure function that renders infomation requested from the backend
 const ImageOfTheDay = (apod) => {
-    console.log('ImageOfTheDay', apod)
+    // console.log('ImageOfTheDay', apod)
     // If image does not already exist, or it is not from today -- request it again
     const today = new Date()
     const photodate = new Date(apod.date)
-    console.log(photodate.getDate(), today.getDate());
+    // console.log(photodate.getDate(), today.getDate());
 
-    console.log(photodate.getDate() === today.getDate());
+    // console.log(photodate.getDate() === today.getDate());
     if (!apod || apod.date === today.getDate() ) {
-        console.log('requesting apod', Date.now())
+        // console.log('requesting apod', Date.now())
         getImageOfTheDay(store)
     }
 
@@ -101,24 +103,32 @@ const ImageOfTheDay = (apod) => {
     }
 }
 
-// const RoverJumbo = (rover) => {
-//     // Check for information in the store.
-//     getRoverInformation(store)
-    
-//     return `
-    
-//     `
-// }
+const RoverJumbo = () => {
+    // Check for information in the store.
 
-const RoverPhotos = (rover) => {
-    console.log('RoverPhotos', rover)
+    if (!store.manifest) {
+        getRoverInformation(store)
+    }
+    
+    return `
+    <div class="jumbotron text-center">
+        <div class="container">
+            <h1>${store.manifest.roverData.name}</h1>
+            <p>Launched: ${store.manifest.roverData.launch_date} | Landed: ${store.manifest.roverData.landing_date} | Status: ${store.manifest.roverData.status} | Total Photos: ${store.manifest.roverData.total_photos}</p>                   
+        </div>         
+    </div>    
+    `
+}
+
+const RoverPhotos = () => {
+    // console.log('RoverPhotos', rover)
     // Check for photos in store
     if (store.photos.length == 0) {
         getRoverPhotos(store)
     }
     
     // reduce photos to formatted html string
-    console.log(store)
+    // console.log(store)
     const htmlPhotoString = store.photos.photos.photos.reduce((htmlString, currentPhoto) => {
         htmlString += `
         <div class="col mb-4">
@@ -156,43 +166,44 @@ const getImageOfTheDay = (state) => {
     let data = fetch(`http://localhost:3000/apod`)
         .then(res => res.json())
         .then(apod => {
-            console.log('getImageOfTheDay: ', apod)
+            // console.log('getImageOfTheDay: ', apod)
             updateStore(store, { apod })
         })
 
     return data
 }
 
-// const getRoverInformation = (state) => {
-//     let { rover } = state
+const getRoverInformation = (state) => {
+    let { rover, page } = state
 
-//     let data = fetch(`http://localhost:3000/manifest`)
-//         .then(res => res.json())
-//         .then(rover => {
-//             console.log('getImageOfTheDay: ', rover)
-//             updateStore(store, { rover })
-//         })
-
-//     return data
-// }
+    let data = fetch(`http://localhost:3000/manifest`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({"rover_name": rover})
+        })
+        .then( res => res.json())
+        .then( manifest => {
+            console.log('MANIFEST', manifest)
+            updateStore( store, { manifest })
+        })
+    return data
+}
 
 const getRoverPhotos = (state) => {
-    let { rover } = state
+    let { rover, page } = state
 
     let data = fetch(`http://localhost:3000/photos`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({"rover_name": "curiosity", "sol": 1000, "page": 1 })
+        body: JSON.stringify({"rover_name": rover, "sol": 1000, "page": page })
         })
         .then( res => res.json())
         .then( photos => {
-            //console.log( {photos} )
-            console.log(`photos in store BEFORE update: ${store.photos}`)
             updateStore( store, { photos })
-            console.log(`photos in store AFTER update: ${store.photos}`)
-            //updateStore( store, { photos })
         })
     return data
 }
