@@ -12,28 +12,113 @@ app.use(bodyParser.json())
 
 app.use('/', express.static(path.join(__dirname, '../public')))
 
+const getRoverCams = (rover) => {
+    const roverCameras = {
+        "curiosity": [
+            {
+                "name": "Front Hazard Avoidance Camera",
+                "abbr": "FHAZ"
+            },
+            {
+                "name": "Rear Hazard Avoidance Camera",
+                "abbr": "RHAZ"
+            },
+            {
+                "name": "Mast Camera",
+                "abbr": "MAST"
+            },
+            {
+                "name": "Chemistry and Camera Complex",
+                "abbr": "CHEMCAM"
+            },
+            {
+                "name": "Mars Hand Lens Imager",
+                "abbr": "MAHLI"
+            },
+            {
+                "name": "Mars Decent Imager",
+                "abbr": "MARDI"
+            },
+            {
+                "name": "Navigation Camera",
+                "abbr": "NAVCAM"
+            }
+        ],
+        "opportunity": [
+            {
+                "name": "Front Hazard Avoidance Camera",
+                "abbr": "FHAZ"
+            },
+            {
+                "name": "Rear Hazard Avoidance Camera",
+                "abbr": "RHAZ"
+            },
+            {
+                "name": "Navigation Camera",
+                "abbr": "NAVCAM"
+            },
+            {
+                "name": "Panoramic Camera",
+                "abbr": "PANCAM"
+            },
+            {
+                "name": "Miniature Thermal Emission Spectrometer (Mini-TES)",
+                "abbr": "MINITES"
+            }
+        ],
+        "spirit": [
+            {
+                "name": "Front Hazard Avoidance Camera",
+                "abbr": "FHAZ"
+            },
+            {
+                "name": "Rear Hazard Avoidance Camera",
+                "abbr": "RHAZ"
+            },
+            {
+                "name": "Navigation Camera",
+                "abbr": "NAVCAM"
+            },
+            {
+                "name": "Panoramic Camera",
+                "abbr": "PANCAM"
+            },
+            {
+                "name": "Miniature Thermal Emission Spectrometer (Mini-TES)",
+                "abbr": "MINITES"
+            }
+        ]
+    }
+    console.log(`cams for ${rover}: ${roverCameras[rover.toLowerCase()]}`)
+    return roverCameras[rover.toLowerCase()]
+
+}
+
+
 // your API calls
 /**
  * @description API call to NASA's Mars Rover Photo's API to get rover manifest data.
  * @param roverName (str): Name of the rover passed in the url.
  */
 app.post('/manifest', async (req, res) => {
-    const roverDataKeys = ["name", "landing_date", "launch_date", "status", "total_photos"]
+    const roverDataKeys = ["name", "landing_date", "launch_date", "status", "max_sol", "max_date", "total_photos"]
     console.log(`https://api.nasa.gov/mars-photos/api/v1/manifests/${req.body.rover_name}?api_key=${process.env.API_KEY}`)
     try {
         const manifest = await fetch(`https://api.nasa.gov/mars-photos/api/v1/manifests/${req.body.rover_name}?api_key=${process.env.API_KEY}`)
             .then (res => res.json())
         // TODO: make this a call back reducer function that returns a JSON object to be returned
-        const roverData = Object.keys(manifest.photo_manifest).reduce( (objArray, key) => {
-            console.log(objArray, key)
+        const rover = Object.keys(manifest.photo_manifest).reduce( (objArray, key) => {
+            // console.log(`evaluating ${key}: ${key} in ${roverDataKeys}: ${roverDataKeys.includes(key)}`)
             if (roverDataKeys.includes(key)) {
                 console.log(`Adding ${key} to ${objArray}`)
                 objArray[key] = manifest.photo_manifest[key]
             }
             return objArray
         }, {})
-        console.log(roverData)
-        res.send({ roverData })
+        // Add rover cameras to manifest
+
+        Object.assign(rover, {'cameras': getRoverCams(rover.name)})
+        res.send({ rover })
     } catch (err) {
         console.log('error: ', err)
         res.status(400).json( { "error": `Unable to retrieve manifest data for ${req.body.rover_name}`})
@@ -52,24 +137,10 @@ app.post('/photos', async (req, res) => {
     try {
         const photos = await fetch(`https://api.nasa.gov/mars-photos/api/v1/rovers/${req.body.rover_name}/photos?sol=${req.body.sol}&page=${req.body.page}&api_key=${process.env.API_KEY}`)
             .then (res => res.json())
-        res.send({ photos })
+        res.send(photos.photos)
     } catch (err) {
         console.log('error: ', err)
         res.status(400).json( { "error": `Unable to retrieve photo data for ${req.params.roverName}`})
-    }
-})
-
-// Can add camera options date picker, etc
-//https://api.nasa.gov/mars-photos/api/v1/rovers/curiosity/photos?sol=1000&page=2&api_key=DEMO_KEY
-
-// example API call
-app.get('/apod', async (req, res) => {
-    try {
-        let image = await fetch(`https://api.nasa.gov/planetary/apod?date=2020-08-01&api_key=${process.env.API_KEY}`)
-            .then(res => res.json())
-        res.send({ image })
-    } catch (err) {
-        console.log('error:', err);
     }
 })
 
