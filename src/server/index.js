@@ -132,12 +132,19 @@ app.post('/manifest', async (req, res) => {
  * TODO: return only photo list. JSON too deep.
 */
 app.post('/photos', async (req, res) => {
-
-    console.log(`https://api.nasa.gov/mars-photos/api/v1/rovers/${req.body.rover_name}/photos?sol=${req.body.sol}&page=${req.body.page}&api_key=${process.env.API_KEY}`)
+    console.log(req.body)
     try {
-        const photos = await fetch(`https://api.nasa.gov/mars-photos/api/v1/rovers/${req.body.rover_name}/photos?sol=${req.body.sol}&page=${req.body.page}&api_key=${process.env.API_KEY}`)
-            .then (res => res.json())
-        res.send(photos.photos)
+        if (req.body.camera != 'all') {
+            const photos = await fetch(`https://api.nasa.gov/mars-photos/api/v1/rovers/${req.body.rover_name}/photos?sol=${req.body.sol}&page=${req.body.page}&camera=${req.body.camera}&api_key=${process.env.API_KEY}`)
+                .then (res => res.json())
+                res.send(photos.photos)
+        } else {
+            const photos = await fetch(`https://api.nasa.gov/mars-photos/api/v1/rovers/${req.body.rover_name}/photos?sol=${req.body.sol}&page=${req.body.page}&api_key=${process.env.API_KEY}`)
+                .then (res => res.json())
+                res.send(photos.photos)
+
+        }
+        
     } catch (err) {
         console.log('error: ', err)
         res.status(400).json( { "error": `Unable to retrieve photo data for ${req.params.roverName}`})

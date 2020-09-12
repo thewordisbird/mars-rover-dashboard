@@ -1,17 +1,23 @@
 // Set root div. This is where all dynamic content goes
 const root = document.getElementById('root')
-const cameraItems = document.getElementsByClassName('')
+
+// Event delegation for dynamic camera filter
+root. addEventListener('click', event => {
+    if (event.target.className === 'dropdown-item') {
+        console.log(event.target.id);
+        updateRoverCam(store, event.target.id)
+        render(root, store)
+    }
+})
+
 // Make store Immutable Object
 let store = Immutable.Map({
     "rovers": Immutable.List(['Curiosity', 'Opportunity', 'Spirit']),
     "rover": Immutable.Map({
         "name": 'Curiosity',
         "cameras": Immutable.List([]),
-        "camera_filter": Immutable.List([]),
-        "photos": Immutable.Map({
-            "photos": Immutable.List([]),
-            "page": 1
-        })
+        "camera": 'all',
+        "page": 1
     })
 })
 
@@ -42,7 +48,10 @@ const updateRover = (state, roverInfo) => {
     console.log(store.toJS())
     }
     
-
+const updateRoverCam = (state, roverCam) => {
+    store = state.updateIn(['rover', 'camera'], val => roverCam)
+    console.log(store.toJS())
+}
 
 // Render page
 const render = async (root, state) => {
@@ -51,6 +60,8 @@ const render = async (root, state) => {
 
 // App compiler
 const App = async (state) => {
+    // Make API Calls to update store
+
     const navBar = NavBar(getRovers(state))
     const roverJumbo = await  RoverJumbo(getRover(state))
     const cameraFilter = CameraFilter()
@@ -74,6 +85,7 @@ const App = async (state) => {
 window.addEventListener('load', () => {
     // TODO: Dynamic routing from compiled list of rovers
     render(root, store)
+
 })
 
 //---------- COMPONENTS ---------- 
@@ -141,17 +153,19 @@ const CameraFilter = () => {
     console.log(roverCameras.toJS())
     const htmlCameraString = roverCameras.reduce((htmlString, currentCamera) => {
         // console.log(currentCamera)
-        htmlString += `
-        <div class="form-check">
-            <input class="form-check-input" type="checkbox" value="" id="${currentCamera.get('id')}">
-            <label class="form-check-label" for="defaultCheck1">
-                ${currentCamera.get('name')}
-            </label>
-        </div>
-        `
+        htmlString += `<div class="dropdown-item" id="${currentCamera.get('abbr')}">${currentCamera.get('name')}</div>`
+
+        // htmlString += `
+        // <div class="form-check">
+        //     <input class="form-check-input" type="checkbox" value="" id="${currentCamera.get('abbr')}">
+        //     <label class="form-check-label" for="defaultCheck1">
+        //         ${currentCamera.get('name')}
+        //     </label>
+        // </div>
+        // `
         return htmlString
 
-    }, "")
+    }, `<div class="dropdown-item" id="all">All</div>`)
     
     return `
     <nav class="navbar navbar-dark bg-dark">
@@ -170,11 +184,10 @@ const RoverPhotos = async (rover) => {
     // console.log(rover.toJS())
     const photos = await fetchData('/photos', {
         "rover_name": rover.get('name'), 
-        "sol": rover.get('max_sol'), 
-        "page": 1
+        "sol": 1000, 
+        "camera": rover.get('camera') || 'all',
+        "page": rover.get('page')
     })
-
-    // console.log("Photos: ", photos)
 
     const htmlPhotoString = photos.reduce((htmlString, currentPhoto) => {
                 
@@ -196,7 +209,6 @@ const RoverPhotos = async (rover) => {
                         </div>
                     </div>
                 </div>`
-                // console.log(htmlString)
                 return htmlString
             }, "")
            
@@ -209,11 +221,10 @@ const RoverPhotos = async (rover) => {
                 </div>
             </div>
             `
- 
 }
+
+
 // Backend API Calls
-
-
 const fetchData = async (url, body) => {
     // console.log("body: ", body)
     let response = await fetch(`http://localhost:3000${url}`, {
