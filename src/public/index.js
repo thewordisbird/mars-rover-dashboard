@@ -1,16 +1,16 @@
-// Set root div. This is where all dynamic content goes
+// DOM Components and event listeners -----------------------------------
 const root = document.getElementById('root')
 
-// Event delegation for dynamic camera filter
-root. addEventListener('click', event => {
+// Event delegation for click event in root div
+root.addEventListener('click', event => {
+    // Trigger photo query and render for camera filter
     if (event.target.className === 'dropdown-item') {
-        console.log(event.target.id);
         updateRoverCam(store, event.target.id)
         render(root, store)
     }
 })
 
-// Make store Immutable Object
+// Local state storage --------------------------------------------------
 let store = Immutable.Map({
     "rovers": Immutable.List(['Curiosity', 'Opportunity', 'Spirit']),
     "rover": Immutable.Map({
@@ -22,9 +22,14 @@ let store = Immutable.Map({
 })
 
 
-// General update store nested
+// State access and modification-----------------------------------------
+// State API Calls (getRovers, getRover, setRover, getPhotos) -----------
+//TODO: Refactor for generalized crud using access path array
+const getState = () => {
+    // Only method to access global store varable
+    return store
+}
 
-// Store API Calls (getRovers, getRover, setRover, getPhotos)
 const getRovers = (state) => {
     return state.get('rovers')
 }
@@ -35,7 +40,7 @@ const getRover = (state) => {
     if (state.hasIn(['rover'])) {
         return state.get('rover')
     }
-    // TODO: Error if rover not set
+    // TODO: Error if rover not set20
     console.log('No rover selected!')
 }
 
@@ -53,15 +58,60 @@ const updateRoverCam = (state, roverCam) => {
     console.log(store.toJS())
 }
 
-// Render page
-const render = async (root, state) => {
-    root.innerHTML = await App(state)
+
+// Render html in element -----------------------------------------------
+const renderRover = (htmlDiv, rover) => {
+    return async (state) => {
+        const data = await fetchData('/manifest', {rover_name: rover})
+        console.log(`Rover Data: ${data.rover.name}`)
+        console.log("Rover Before Updated Store: ", store.toJS())
+        updateRover(state, data)
+
+        console.log("Rover Updated Store: ", store.toJS())
+
+        const pageHTML = await App(getState());
+        return pageHTML
+
+        // fetchData('/manifest', {rover_name: rover})
+        // .then((data)=> {
+        //     return updateRover(state)
+        // })
+        // .then(() => {
+        //     //htmlDiv.innerHTML = `This is the page for ${rover}`
+        //     //return `This is the page for ${rover}`
+        //     return await App(state)
+        // })        
+    }
 }
 
-// App compiler
+const renderHome = (htmlDiv) => {
+    return (sate) => {
+        return "<h1>Home sweet home!</h1>"
+    }
+    
+}
+
+const render = async (htmlDiv, hashURL, state) => {
+    console.log('Step 2. Render Route');
+    const pageHTML = routes.has(hashURL) ? await routes.get(hashURL)(state) : `404: Page ${hashURL} not found` 
+    console.log("Render HTML: ", pageHTML)
+    htmlDiv.innerHTML = pageHTML
+    
+}
+// const render = async (htmlDiv) => {
+//     console.log('in render')
+//     // const state = getState()
+   
+//     // console.log("ROUTES", routes)
+//     // htmlDiv.innerHTML = await App(getState())
+//     routes[window.location.pathname];
+// }
+
+
+// Component Compiler ---------------------------------------------------
 const App = async (state) => {
     // Make API Calls to update store
-
+    console.log('In APP State: ', state.toJS())
     const navBar = NavBar(getRovers(state))
     const roverJumbo = await  RoverJumbo(getRover(state))
     const cameraFilter = CameraFilter()
@@ -81,34 +131,53 @@ const App = async (state) => {
 
 }
 
-// listening for load event because page should load before any JS is called
+// Routing and navigation -----------------------------------------------
+const updateRoverRoutes = (root) => {
+    console.log('in update rover routes')
+    // creates a route for each rover.
+    const rovers = getRovers(getState())
+    return rovers.reduce((acc, current) => {
+        acc[`#${current.toLowerCase()}`] = renderRover(root, current)
+        return acc
+    }, {"/": renderHome(root), "#test": renderHome(root) })
+}
+
+const routes = Immutable.fromJS(updateRoverRoutes(root))
+
+const onNavigate = (pathName) => {
+    window.history.pushState(
+        {},
+        pathName,
+        window.location.origin + pathName
+    )
+    routes[pathName]
+}
+
+
+
+// Listen for load and hashchange events to trigger appropriate routing--
 window.addEventListener('load', () => {
-    // TODO: Dynamic routing from compiled list of rovers
-    render(root, store)
+    console.log('Step 1a. On Load Trigger');
+    const hashURL = window.location.hash;
+    render(root, hashURL, store)
+    
+})
+
+window.addEventListener('hashchange', () => {
+    console.log('Step 1b. On Hashchange Trigger');
+    const hashURL = window.location.hash;
+
+    render(root, hashURL, store)
 
 })
 
-//---------- COMPONENTS ---------- 
-const listRovers = (rovers) => {
-    const htmlListRoveres = rovers.reduce((htmlString, currentRover) => {
-        htmlString += `
-        <li class="nav-item">
-            <a class="nav-link" href="#">${currentRover}<span class="sr-only">(current)</span></a>
-        </li>
-        `
-        return htmlString
 
-    }, "")
-
-    return htmlListRoveres
-
-}
-
+// Components -----------------------------------------------------------
 const NavBar = (rovers) => {
     const htmlNavItemString = rovers.reduce((htmlString, currentRover) => {
         htmlString += `
         <li class="nav-item">
-            <a class="nav-link" href="#">${currentRover}<span class="sr-only">(current)</span></a>
+            <a class="nav-link" href="#${currentRover.toLowerCase()}">${currentRover}<span class="sr-only">(current)</span></a>
         </li>
         `
         return htmlString
@@ -154,15 +223,6 @@ const CameraFilter = () => {
     const htmlCameraString = roverCameras.reduce((htmlString, currentCamera) => {
         // console.log(currentCamera)
         htmlString += `<div class="dropdown-item" id="${currentCamera.get('abbr')}">${currentCamera.get('name')}</div>`
-
-        // htmlString += `
-        // <div class="form-check">
-        //     <input class="form-check-input" type="checkbox" value="" id="${currentCamera.get('abbr')}">
-        //     <label class="form-check-label" for="defaultCheck1">
-        //         ${currentCamera.get('name')}
-        //     </label>
-        // </div>
-        // `
         return htmlString
 
     }, `<div class="dropdown-item" id="all">All</div>`)
@@ -224,7 +284,7 @@ const RoverPhotos = async (rover) => {
 }
 
 
-// Backend API Calls
+// Express API Calls ----------------------------------------------------
 const fetchData = async (url, body) => {
     // console.log("body: ", body)
     let response = await fetch(`http://localhost:3000${url}`, {
