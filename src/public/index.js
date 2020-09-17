@@ -5,8 +5,12 @@ const root = document.getElementById('root')
 root.addEventListener('click', event => {
     // Trigger photo query and render for camera filter
     if (event.target.className === 'dropdown-item') {
+        // Update state camera field
+        console.log("Before Cam update: ", store.toJS())
         updateRoverCam(store, event.target.id)
-        render(root, store)
+        console.log("After Cam update: ", store.toJS())
+        // render photos
+        renderPhotos(getState())
     }
 })
 
@@ -44,18 +48,16 @@ const getRover = (state) => {
     console.log('No rover selected!')
 }
 
-const getRoverCams = () => {
-    console.log('cam store', store)
+const getRoverCams = (state) => {
+    return state.getIn(['rover', 'cameras'])
 }
 
 const updateRover = (state, roverInfo) => {
     store = state.merge(roverInfo)
-    console.log(store.toJS())
     }
     
 const updateRoverCam = (state, roverCam) => {
     store = state.updateIn(['rover', 'camera'], val => roverCam)
-    console.log(store.toJS())
 }
 
 
@@ -63,24 +65,12 @@ const updateRoverCam = (state, roverCam) => {
 const renderRover = (htmlDiv, rover) => {
     return async (state) => {
         const data = await fetchData('/manifest', {rover_name: rover})
-        console.log(`Rover Data: ${data.rover.name}`)
-        console.log("Rover Before Updated Store: ", store.toJS())
-        updateRover(state, data)
 
-        console.log("Rover Updated Store: ", store.toJS())
+        updateRover(state, data)
 
         const pageHTML = await App(getState());
         return pageHTML
 
-        // fetchData('/manifest', {rover_name: rover})
-        // .then((data)=> {
-        //     return updateRover(state)
-        // })
-        // .then(() => {
-        //     //htmlDiv.innerHTML = `This is the page for ${rover}`
-        //     //return `This is the page for ${rover}`
-        //     return await App(state)
-        // })        
     }
 }
 
@@ -94,37 +84,33 @@ const renderHome = (htmlDiv) => {
 const render = async (htmlDiv, hashURL, state) => {
     console.log('Step 2. Render Route');
     const pageHTML = routes.has(hashURL) ? await routes.get(hashURL)(state) : `404: Page ${hashURL} not found` 
-    console.log("Render HTML: ", pageHTML)
+
     htmlDiv.innerHTML = pageHTML
     
 }
-// const render = async (htmlDiv) => {
-//     console.log('in render')
-//     // const state = getState()
-   
-//     // console.log("ROUTES", routes)
-//     // htmlDiv.innerHTML = await App(getState())
-//     routes[window.location.pathname];
-// }
+
+const renderPhotos = async (state) => {
+    const element = document.getElementById('rover-photos')
+    element.innerHTML = await RoverPhotos(getRover(state))
+}
 
 
 // Component Compiler ---------------------------------------------------
 const App = async (state) => {
     // Make API Calls to update store
-    console.log('In APP State: ', state.toJS())
+    
     const navBar = NavBar(getRovers(state))
-    const roverJumbo = await  RoverJumbo(getRover(state))
-    const cameraFilter = CameraFilter()
-    const roverPhotos = await RoverPhotos(getRover(store))
+    const roverJumbo = RoverJumbo(getRover(state))
+    const photoFilter = PhotoFilter(getRoverCams(state))
+    const roverPhotos = await RoverPhotos(getRover(state))
     return `
     <header>
-        <section>${navBar}</section>
-        <section>${roverJumbo}</section>
-        <section>${cameraFilter}</section>
+        <section id="nav-bar">${navBar}</section>
+        <section id="rover-jumbo">${roverJumbo}</section>
+        <section id="camera-filter">${photoFilter}</section>
     </header>
     <main>
-        
-        <section>${roverPhotos}</section>
+        <section id="rover-photos">${roverPhotos}</section>
     </main>
     <footer></footer>
     `
@@ -202,26 +188,28 @@ const NavBar = (rovers) => {
 }
 
 
-const RoverJumbo = async (rover) => {
-    const data = await fetchData('/manifest', {"rover_name": rover.get('name')})
-    
-    updateRover(store, data)
-    // console.log(store)
+const RoverJumbo = (rover) => {
+    console.log(rover.toJS())
     return `
         <div class="jumbotron text-center">
             <div class="container">
-                <h1>${store.getIn(['rover', 'name'])}</h1>
-                <p>Launched: ${store.getIn(['rover', 'launch_date'])} | Landed: ${store.getIn(['rover', 'landing_date'])} | Status: ${store.getIn(['rover', 'satus'])} | Total Photos: ${store.getIn(['rover', 'total_photos'])}</p>                   
+                <h1>${rover.get('name')}</h1>
+                <p>Launched: ${rover.get('launch_date')} | Landed: ${rover.get('landing_date')} | Status: ${rover.get('status')} | Total Photos: ${rover.get('total_photos')}</p>                   
             </div>         
         </div>    
     `     
+    // return `
+    //     <div class="jumbotron text-center">
+    //         <div class="container">
+    //             <h1>${store.getIn(['rover', 'name'])}</h1>
+    //             <p>Launched: ${store.getIn(['rover', 'launch_date'])} | Landed: ${store.getIn(['rover', 'landing_date'])} | Status: ${store.getIn(['rover', 'satus'])} | Total Photos: ${store.getIn(['rover', 'total_photos'])}</p>                   
+    //         </div>         
+    //     </div>    
+    // `     
     }
 
-const CameraFilter = () => {    
-    const roverCameras = store.getIn(['rover', 'cameras'])
-    console.log(roverCameras.toJS())
+const PhotoFilter = (roverCameras) => {    
     const htmlCameraString = roverCameras.reduce((htmlString, currentCamera) => {
-        // console.log(currentCamera)
         htmlString += `<div class="dropdown-item" id="${currentCamera.get('abbr')}">${currentCamera.get('name')}</div>`
         return htmlString
 
