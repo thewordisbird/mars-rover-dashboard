@@ -21,6 +21,13 @@
     left: auto;
 }
 
+.rover-link {
+    cursor: pointer;
+}
+
+.rover-link:hover {
+    text-decoration: underline;
+}
 
 /* -------------------  MOBILE  --------------------- */
 

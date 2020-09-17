@@ -6,33 +6,48 @@ root.addEventListener('click', event => {
     // Trigger photo query and render for camera filter
     if (event.target.className === 'dropdown-item') {
         // Update state camera field
-        console.log("Before Cam update: ", store.toJS())
         updateRoverCam(store, event.target.id)
-        console.log("After Cam update: ", store.toJS())
         // render photos
         renderPhotos(getState())
+    } else if (event.target.className === 'rover-link') {
+        window.location.hash = `${event.target.id}`
     }
+
+    
 })
 
 // Local state storage --------------------------------------------------
-let store = Immutable.Map({
-    "rovers": Immutable.List(['Curiosity', 'Opportunity', 'Spirit']),
-    "rover": Immutable.Map({
-        "name": 'Curiosity',
-        "cameras": Immutable.List([]),
-        "camera": 'all',
-        "page": 1
+const renewStore =() => {
+    return Immutable.Map({
+        "rovers": Immutable.List(['Curiosity', 'Opportunity', 'Spirit']),
+        
     })
-})
+}
+
+let store = renewStore()
+
+// let store = Immutable.Map({
+//     "rovers": Immutable.List(['Curiosity', 'Opportunity', 'Spirit']),
+//     "rover": Immutable.Map({
+//         "name": 'Curiosity',
+//         "cameras": Immutable.List([]),
+//         "camera": 'all',
+//         "page": 1
+//     })
+// })
 
 
 // State access and modification-----------------------------------------
 // State API Calls (getRovers, getRover, setRover, getPhotos) -----------
 //TODO: Refactor for generalized crud using access path array
+
+
 const getState = () => {
     // Only method to access global store varable
     return store
 }
+
+
 
 const getRovers = (state) => {
     return state.get('rovers')
@@ -75,17 +90,10 @@ const renderRover = (htmlDiv, rover) => {
 }
 
 const renderHome = (htmlDiv) => {
-    return (sate) => {
-        return "<h1>Home sweet home!</h1>"
+    return async (state) => {
+        store = renewStore()
+        return await App(store)
     }
-    
-}
-
-const render = async (htmlDiv, hashURL, state) => {
-    console.log('Step 2. Render Route');
-    const pageHTML = routes.has(hashURL) ? await routes.get(hashURL)(state) : `404: Page ${hashURL} not found` 
-
-    htmlDiv.innerHTML = pageHTML
     
 }
 
@@ -94,19 +102,38 @@ const renderPhotos = async (state) => {
     element.innerHTML = await RoverPhotos(getRover(state))
 }
 
+const render = async (htmlDiv, route, state) => {
+    console.log('Step 2. Render Route');
+    console.log("state pre-render: ", store.toJS())
+    //const pageHTML = routes.has(hashURL) ? await routes.get(hashURL)(state) : await App(renewStore()) 
+    if (routes.has(route)) {
+        htmlDiv.innerHTML = await routes.get(route)(state)
+    } else if (route) {
+        htmlDiv.innerHTML = `404: ${route} is not a vailid Page`
+        
+    } else {
+        htmlDiv.innerHTML = await renderHome(root)(state)
+    }
+    console.log("state post-render: ", store.toJS())
+    
+    
+}
+
+
+
 
 // Component Compiler ---------------------------------------------------
 const App = async (state) => {
     // Make API Calls to update store
     
     const navBar = NavBar(getRovers(state))
-    const roverJumbo = RoverJumbo(getRover(state))
-    const photoFilter = PhotoFilter(getRoverCams(state))
-    const roverPhotos = await RoverPhotos(getRover(state))
+    const Jumbo = getRover(state) ? RoverJumbo(getRover(state)): HomeJumbo(getRovers(state))
+    const photoFilter = getRoverCams(state) ? PhotoFilter(getRoverCams(state)): "" 
+    const roverPhotos = getRover(state) ? await RoverPhotos(getRover(state)): ""
     return `
     <header>
         <section id="nav-bar">${navBar}</section>
-        <section id="rover-jumbo">${roverJumbo}</section>
+        <section id="rover-jumbo">${Jumbo}</section>
         <section id="camera-filter">${photoFilter}</section>
     </header>
     <main>
@@ -187,9 +214,28 @@ const NavBar = (rovers) => {
     </nav>`
 }
 
+const HomeJumbo = (rovers) => {
+    const roverLinks = rovers.reduce((htmlString, current, idx, arr) => {
+        console.log(arr.size)
+        if (idx == arr.size -1){
+            return htmlString += `<span class="rover-link" id="${current.toLowerCase()}">${current}</span>`
+        }
+        return htmlString += `<span class="rover-link" id="${current.toLowerCase()}">${current}</span> | `
+    }, "")
+
+    return `
+        <div class="jumbotron text-center">
+            <div class="container">
+                <h1>Mars Rover Photo Dashboard</h1>
+                <hr>
+                <p>${roverLinks}</p>                   
+
+            </div>         
+        </div>    
+    `    
+}
 
 const RoverJumbo = (rover) => {
-    console.log(rover.toJS())
     return `
         <div class="jumbotron text-center">
             <div class="container">
@@ -198,14 +244,6 @@ const RoverJumbo = (rover) => {
             </div>         
         </div>    
     `     
-    // return `
-    //     <div class="jumbotron text-center">
-    //         <div class="container">
-    //             <h1>${store.getIn(['rover', 'name'])}</h1>
-    //             <p>Launched: ${store.getIn(['rover', 'launch_date'])} | Landed: ${store.getIn(['rover', 'landing_date'])} | Status: ${store.getIn(['rover', 'satus'])} | Total Photos: ${store.getIn(['rover', 'total_photos'])}</p>                   
-    //         </div>         
-    //     </div>    
-    // `     
     }
 
 const PhotoFilter = (roverCameras) => {    
@@ -229,10 +267,10 @@ const PhotoFilter = (roverCameras) => {
         <ul class="navbar-nav mr-auto">
             
             <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <a class="nav-link dropdown-toggle" href="#" id="filterDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 Cameras
             </a>
-            <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+            <div class="dropdown-menu" aria-labelledby="filterDropdown">
                 ${htmlCameraString}
             </div>
             
