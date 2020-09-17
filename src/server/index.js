@@ -118,6 +118,7 @@ app.post('/manifest', async (req, res) => {
         // Add rover cameras to manifest
 
         Object.assign(rover, {'cameras': getRoverCams(rover.name)})
+        console.log(rover)
         res.send({ rover })
     } catch (err) {
         console.log('error: ', err)

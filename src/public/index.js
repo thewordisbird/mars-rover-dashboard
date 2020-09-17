@@ -194,7 +194,7 @@ const RoverJumbo = (rover) => {
         <div class="jumbotron text-center">
             <div class="container">
                 <h1>${rover.get('name')}</h1>
-                <p>Launched: ${rover.get('launch_date')} | Landed: ${rover.get('landing_date')} | Status: ${rover.get('status')} | Total Photos: ${rover.get('total_photos')}</p>                   
+                <p>Launched: ${rover.get('launch_date')} | Landed: ${rover.get('landing_date')} | Status: ${rover.get('status')}<br>Max Date: ${rover.get('max_date')} | Max Sol: ${rover.get('max_sol')} | Total Photos: ${rover.get('total_photos')}</p>                   
             </div>         
         </div>    
     `     
@@ -215,24 +215,42 @@ const PhotoFilter = (roverCameras) => {
 
     }, `<div class="dropdown-item" id="all">All</div>`)
     
+    // TODO: Add date selector
     return `
-    <nav class="navbar navbar-dark bg-dark">
-        <div class="container">
-            <button id="btnGroupDrop1" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+    <nav class="navbar navbar-expand-sm navbar-dark bg-dark">
+    <div class="container">
+        <div class="navbar-brand">Filters</div>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+        </button>
+    
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        
+        <ul class="navbar-nav mr-auto">
+            
+            <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 Cameras
-            </button>
-            <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
-            ${htmlCameraString}
-            </div>   
+            </a>
+            <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                ${htmlCameraString}
+            </div>
+            
+        </ul>
+            <!-- Form for future version with sol filter
+            <input class="form-control mr-sm-2" type="search" placeholder="Sol" aria-label="Search">
+            <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+            -->
         </div>
-    </nav>`
+    </div>
+  </nav>`
 }
 
 const RoverPhotos = async (rover) => {
     // console.log(rover.toJS())
     const photos = await fetchData('/photos', {
         "rover_name": rover.get('name'), 
-        "sol": 1000, 
+        "sol": rover.get('max_sol'), 
         "camera": rover.get('camera') || 'all',
         "page": rover.get('page')
     })
