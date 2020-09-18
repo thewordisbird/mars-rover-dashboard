@@ -21,7 +21,9 @@ root.addEventListener('click', event => {
         
     } else if (event.target.className === 'rover-link') {
         window.location.hash = `${event.target.id}`
-    } 
+    } else if (event.target.classList.contains('view-images')) {
+        window.location.hash = `${event.target.value}`
+    }
 })
 
 // Routing and navigation -----------------------------------------------
@@ -174,23 +176,41 @@ const NavBar = (rovers) => {
 }
 
 const HomeJumbo = (rovers) => {
-    const roverLinks = rovers.reduce((htmlString, current, idx, arr) => {
-        console.log(arr.size)
-        if (idx == arr.size -1){
-            return htmlString += `<span class="rover-link" id="${current.toLowerCase()}">${current}</span>`
-        }
-        return htmlString += `<span class="rover-link" id="${current.toLowerCase()}">${current}</span> | `
+    // const roverLinks = rovers.reduce((htmlString, current, idx, arr) => {
+    //     console.log(arr.size)
+    //     if (idx == arr.size -1){
+    //         return htmlString += `<span class="rover-link" id="${current.toLowerCase()}">${current}</span>`
+    //     }
+    //     return htmlString += `<span class="rover-link" id="${current.toLowerCase()}">${current}</span> | `
+    // }, "")
+
+    const roverInfo = rovers.reduce((htmlString, currentRover) => {
+        return htmlString += `
+        <div class="col-md-4">
+            <div class="home-rover-grid-item card">
+                <img src="/assets/images/${currentRover}.jpg" class="card-img-top" alt="${currentRover}">
+                <div class="card-body">
+                <h5 class="card-title">${currentRover}</h5>
+                <button class="btn btn-secondary view-images" value="${currentRover.toLowerCase()}">View Images »</button>
+                </div>
+            </div>
+        </div>
+
+        `
     }, "")
 
     return `
         <div class="jumbotron text-center">
             <div class="container">
                 <h1>Mars Rover Photo Dashboard</h1>
-                <hr>
-                <p>${roverLinks}</p>                   
-
-            </div>         
-        </div>    
+                <p>live status and photos for the rovers exploring the red planet</p>      
+            </div>   
+        </div>   
+        <div class="container home-rover-grid">
+            <div class="row">
+                ${roverInfo}
+            </div>
+        </div>
     `    
 }
 

@@ -1,6 +1,21 @@
 /* ------------------  GENERAL  --------------------- */
 .jumbotron {
     margin-bottom: 0;
+    background-image: url("../images/mars_horizon.jpg");
+    background-repeat: no-repeat;
+    background-size: cover;
+    border-radius: 0;
+    color: white;
+}
+
+.home-rover-grid {
+    margin-top: 2em;
+    justify-content: center;
+}
+
+.home-rover-grid-item img{
+    width: 100%;
+    height: 325px;
 }
 .card-img-frame {
     width: 100%;
