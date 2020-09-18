@@ -29,6 +29,10 @@
     text-decoration: underline;
 }
 
+.camera-filter-item {
+    cursor: pointer;
+}
+
 /* -------------------  MOBILE  --------------------- */
 
 body {

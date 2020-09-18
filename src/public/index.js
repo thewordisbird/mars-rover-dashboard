@@ -1,17 +1,27 @@
 // DOM Components and event listeners -----------------------------------
 const root = document.getElementById('root')
-
+console.log(root)
 // Event delegation for click event in root div
 root.addEventListener('click', event => {
     // Trigger photo query and render for camera filter
-    if (event.target.className === 'dropdown-item') {
+    if (event.target.className.includes('camera-filter-item') ) {
+        const state = getState()
+        
+        const prevFilter = state.getIn(['rover', 'camera']) || 'all'
+        const prevFilterElement = document.getElementById(prevFilter)
+        prevFilterElement.classList.remove('active')
+        
+        const currentFilterItem = event.target
+        currentFilterItem.classList.add('active')
+        
         // Update state camera field
         const newState = updateState(getState(), ['rover', 'camera'], event.target.id)
         // render photos
         renderPhotos(newState)
+        
     } else if (event.target.className === 'rover-link') {
         window.location.hash = `${event.target.id}`
-    }
+    } 
 })
 
 // Routing and navigation -----------------------------------------------
@@ -101,10 +111,11 @@ const App = async (state) => {
     const rovers = state.get('rovers')
     const rover = state.get('rover')
     const roverCams = state.getIn(['rover', 'cameras'])
+    const camera = state.getIn['rover', 'camera'] || 'all'
 
     const navBar = NavBar(rovers)
     const Jumbo = rover ? RoverJumbo(rover): HomeJumbo(rovers)
-    const photoFilter = roverCams ? PhotoFilter(roverCams): "" 
+    const photoFilter = roverCams ? PhotoFilter(roverCams, camera): "" 
     const roverPhotos = rover ? await RoverPhotos(rover): ""
     return `
         <header>
@@ -196,10 +207,9 @@ const RoverJumbo = (rover) => {
 
 const PhotoFilter = (roverCameras) => {    
     const htmlCameraString = roverCameras.reduce((htmlString, currentCamera) => {
-        htmlString += `<div class="dropdown-item" id="${currentCamera.get('abbr')}">${currentCamera.get('name')}</div>`
+        htmlString += `<div class="dropdown-item camera-filter-item" id="${currentCamera.get('abbr')}">${currentCamera.get('name')}</div>`
         return htmlString
-
-    }, `<div class="dropdown-item" id="all">All</div>`)
+    }, `<div class="dropdown-item camera-filter-item active"} " id="all">All</div>`)
     
     // TODO: Add date selector
     return `
@@ -276,6 +286,7 @@ const RoverPhotos = async (rover) => {
 
 // Express API Calls ----------------------------------------------------
 const fetchData = async (url, body) => {
+    console.log(body)
     // console.log("body: ", body)
     let response = await fetch(`http://localhost:3000${url}`, {
         method: 'POST',
