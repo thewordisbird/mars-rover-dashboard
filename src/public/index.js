@@ -6,182 +6,131 @@ root.addEventListener('click', event => {
     // Trigger photo query and render for camera filter
     if (event.target.className === 'dropdown-item') {
         // Update state camera field
-        updateRoverCam(store, event.target.id)
+        const newState = updateState(getState(), ['rover', 'camera'], event.target.id)
         // render photos
-        renderPhotos(getState())
+        renderPhotos(newState)
     } else if (event.target.className === 'rover-link') {
         window.location.hash = `${event.target.id}`
     }
-
-    
 })
 
+// Routing and navigation -----------------------------------------------
+let routes
+
+const updateRoverRoutes = (state, rootDiv) => {
+    // creates a route for each rover.
+    const rovers = state.get('rovers')
+    return rovers.reduce((acc, current) => {
+        acc[`#${current.toLowerCase()}`] = renderRover(rootDiv, current)
+        return acc
+    }, {"#": renderHome(rootDiv)})
+}
+
+const setRoutes = (state, rootDiv) => {
+    routes = Immutable.fromJS(updateRoverRoutes(state, rootDiv))
+}
+
+
 // Local state storage --------------------------------------------------
-const renewStore =() => {
+let store 
+
+const freshState =() => {
     return Immutable.Map({
-        "rovers": Immutable.List(['Curiosity', 'Opportunity', 'Spirit']),
-        
+        "rovers": Immutable.List(['Curiosity', 'Opportunity', 'Spirit'])
     })
 }
 
-let store = renewStore()
-
-// let store = Immutable.Map({
-//     "rovers": Immutable.List(['Curiosity', 'Opportunity', 'Spirit']),
-//     "rover": Immutable.Map({
-//         "name": 'Curiosity',
-//         "cameras": Immutable.List([]),
-//         "camera": 'all',
-//         "page": 1
-//     })
-// })
-
-
-// State access and modification-----------------------------------------
-// State API Calls (getRovers, getRover, setRover, getPhotos) -----------
-//TODO: Refactor for generalized crud using access path array
-
-
-const getState = () => {
-    // Only method to access global store varable
+const renewState = () => {
+    store = freshState()
     return store
 }
 
-
-
-const getRovers = (state) => {
-    return state.get('rovers')
+const getState = () => {
+    return store
 }
 
-const getRover = (state) => {
-    // Check for rover in store. Eventually this should be a routed path and
-    // validated by the url
-    if (state.hasIn(['rover'])) {
-        return state.get('rover')
-    }
-    // TODO: Error if rover not set20
-    console.log('No rover selected!')
-}
-
-const getRoverCams = (state) => {
-    return state.getIn(['rover', 'cameras'])
-}
-
-const updateRover = (state, roverInfo) => {
-    store = state.merge(roverInfo)
-    }
-    
-const updateRoverCam = (state, roverCam) => {
-    store = state.updateIn(['rover', 'camera'], val => roverCam)
+const updateState = (state, path, data) => {
+    // On every update, update the global store variable
+    console.log(path,data)
+    const newState = state.setIn(path, Immutable.fromJS(data))
+    store = newState;
+    return newState
 }
 
 
-// Render html in element -----------------------------------------------
+// Render functions --------------------------------------------------
 const renderRover = (htmlDiv, rover) => {
     return async (state) => {
+        // Update the state with the chosen rover 
+        console.log('updating state')
         const data = await fetchData('/manifest', {rover_name: rover})
-
-        updateRover(state, data)
-
-        const pageHTML = await App(getState());
-        return pageHTML
-
+        const newState = updateState(
+            state, 
+            ['rover'], 
+            data['rover']
+        )
+        return await App(newState)      
     }
 }
 
 const renderHome = (htmlDiv) => {
     return async (state) => {
-        store = renewStore()
-        return await App(store)
-    }
-    
+        return await App(state)
+    }    
 }
 
 const renderPhotos = async (state) => {
     const element = document.getElementById('rover-photos')
-    element.innerHTML = await RoverPhotos(getRover(state))
+    element.innerHTML = await RoverPhotos(state.get('rover'))
 }
 
-const render = async (htmlDiv, route, state) => {
-    console.log('Step 2. Render Route');
-    console.log("state pre-render: ", store.toJS())
-    //const pageHTML = routes.has(hashURL) ? await routes.get(hashURL)(state) : await App(renewStore()) 
+const render = async (state, route, htmlDiv) => {
     if (routes.has(route)) {
         htmlDiv.innerHTML = await routes.get(route)(state)
     } else if (route) {
         htmlDiv.innerHTML = `404: ${route} is not a vailid Page`
-        
     } else {
         htmlDiv.innerHTML = await renderHome(root)(state)
     }
-    console.log("state post-render: ", store.toJS())
-    
-    
 }
-
-
 
 
 // Component Compiler ---------------------------------------------------
 const App = async (state) => {
-    // Make API Calls to update store
     
-    const navBar = NavBar(getRovers(state))
-    const Jumbo = getRover(state) ? RoverJumbo(getRover(state)): HomeJumbo(getRovers(state))
-    const photoFilter = getRoverCams(state) ? PhotoFilter(getRoverCams(state)): "" 
-    const roverPhotos = getRover(state) ? await RoverPhotos(getRover(state)): ""
+    const rovers = state.get('rovers')
+    const rover = state.get('rover')
+    const roverCams = state.getIn(['rover', 'cameras'])
+
+    const navBar = NavBar(rovers)
+    const Jumbo = rover ? RoverJumbo(rover): HomeJumbo(rovers)
+    const photoFilter = roverCams ? PhotoFilter(roverCams): "" 
+    const roverPhotos = rover ? await RoverPhotos(rover): ""
     return `
-    <header>
-        <section id="nav-bar">${navBar}</section>
-        <section id="rover-jumbo">${Jumbo}</section>
-        <section id="camera-filter">${photoFilter}</section>
-    </header>
-    <main>
-        <section id="rover-photos">${roverPhotos}</section>
-    </main>
-    <footer></footer>
+        <header>
+            <section id="nav-bar">${navBar}</section>
+            <section id="rover-jumbo">${Jumbo}</section>
+            <section id="camera-filter">${photoFilter}</section>
+        </header>
+        <main>
+            <section id="rover-photos">${roverPhotos}</section>
+        </main>
+        <footer></footer>
     `
-
 }
-
-// Routing and navigation -----------------------------------------------
-const updateRoverRoutes = (root) => {
-    console.log('in update rover routes')
-    // creates a route for each rover.
-    const rovers = getRovers(getState())
-    return rovers.reduce((acc, current) => {
-        acc[`#${current.toLowerCase()}`] = renderRover(root, current)
-        return acc
-    }, {"/": renderHome(root), "#test": renderHome(root) })
-}
-
-const routes = Immutable.fromJS(updateRoverRoutes(root))
-
-const onNavigate = (pathName) => {
-    window.history.pushState(
-        {},
-        pathName,
-        window.location.origin + pathName
-    )
-    routes[pathName]
-}
-
 
 
 // Listen for load and hashchange events to trigger appropriate routing--
 window.addEventListener('load', () => {
-    console.log('Step 1a. On Load Trigger');
-    const hashURL = window.location.hash;
-    render(root, hashURL, store)
-    
+    const state = renewState()
+    setRoutes(state, root)
+    render(state, window.location.hash, root)
 })
 
 window.addEventListener('hashchange', () => {
-    console.log('Step 1b. On Hashchange Trigger');
-    const hashURL = window.location.hash;
-
-    render(root, hashURL, store)
-
+    const state = renewState()
+    setRoutes(state, root)
+    render(state, window.location.hash, root)
 })
 
 
@@ -198,13 +147,12 @@ const NavBar = (rovers) => {
     }, "")
    
     return `
-    <nav class="navbar navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="#">Mars Rovers</a>
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
-            </button>
-        
+            </button>        
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav mr-auto">
                 ${htmlNavItemString}
@@ -244,7 +192,7 @@ const RoverJumbo = (rover) => {
             </div>         
         </div>    
     `     
-    }
+}
 
 const PhotoFilter = (roverCameras) => {    
     const htmlCameraString = roverCameras.reduce((htmlString, currentCamera) => {
@@ -294,37 +242,35 @@ const RoverPhotos = async (rover) => {
     })
 
     const htmlPhotoString = photos.reduce((htmlString, currentPhoto) => {
-                
-                
-                htmlString += `
-                <div class="col mb-3">
-                    <div class="card h-100">
-                        <div class="card-img-frame">
-                            <img src="${currentPhoto.img_src}" class="card-img-top" alt="...">
-                        </div>
-                
-                        
-                        <div class="card-body">
-                            <ul>
-                                <li>Camera: ${currentPhoto.camera.full_name}</li>
-                                <li>Sol: ${currentPhoto.sol}</li>
-                                <li>Earth Date: ${currentPhoto.earth_date}
-                            </ul>
-                        </div>
+        htmlString += `
+            <div class="col mb-3">
+                <div class="card h-100">
+                    <div class="card-img-frame">
+                        <img src="${currentPhoto.img_src}" class="card-img-top" alt="...">
                     </div>
-                </div>`
-                return htmlString
-            }, "")
-           
-            return `
-            <div class="album">
-                <div class="container">
-                    <div class="row row-cols-1 row-cols-md-4">
-                    ${htmlPhotoString}                
+            
+                    
+                    <div class="card-body">
+                        <ul>
+                            <li>Camera: ${currentPhoto.camera.full_name}</li>
+                            <li>Sol: ${currentPhoto.sol}</li>
+                            <li>Earth Date: ${currentPhoto.earth_date}
+                        </ul>
                     </div>
                 </div>
+            </div>`
+            return htmlString
+    }, "")
+           
+    return `
+    <div class="album">
+        <div class="container">
+            <div class="row row-cols-1 row-cols-md-4">
+            ${htmlPhotoString}                
             </div>
-            `
+        </div>
+    </div>
+    `
 }
 
 
