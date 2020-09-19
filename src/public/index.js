@@ -1,8 +1,8 @@
 // DOM Components and event listeners -----------------------------------
 const root = document.getElementById('root')
-console.log(root)
+
 // Event delegation for click event in root div
-root.addEventListener('click', event => {
+root.addEventListener('click', async event => {
     // Trigger photo query and render for camera filter
     if (event.target.className.includes('camera-filter-item') ) {
         const state = getState()
@@ -14,8 +14,25 @@ root.addEventListener('click', event => {
         const currentFilterItem = event.target
         currentFilterItem.classList.add('active')
         
+        // get data to update newState
+        const camera = event.target.id
+        console.log('getting photos for camera ', camera)
+        const photos = await fetchData('/photos', {
+            "rover_name": state.getIn(['rover', 'data', 'name']), 
+            "sol": state.getIn(['rover', 'data', 'max_sol']),
+            "page": 1,
+            "camera": camera
+        })
+
+    
         // Update state camera field
-        const newState = updateState(getState(), ['rover', 'camera'], event.target.id)
+        const newState = updateState(state, ['rover', 'photos'], {
+            photos: photos,
+            camera: camera,
+            nextPage: 2
+        })
+        
+        console.log('Updated Camera State: ', newState.toJS())
         // render photos
         renderPhotos(newState)
         
@@ -26,7 +43,7 @@ root.addEventListener('click', event => {
     }
 })
 
-window.addEventListener('scroll', event =>{
+window.addEventListener('scroll', async event =>{
     const pageBottom = document.body.scrollHeight - window.innerHeight;
     if (document.body.scrollTop == pageBottom || document.documentElement.scrollTop == pageBottom) {
         
@@ -34,7 +51,19 @@ window.addEventListener('scroll', event =>{
 
         const currentPhotoPage = state.getIn(['rover', 'page']) || 1;
 
-        
+        const photos = await fetchData('/photos', {
+            "rover_name": state.getIn(['rover', 'data', 'name']), 
+            "sol": state.getIn(['rover', 'data', 'max_sol']),
+            "page": state.getIn(['rover', 'photos', 'nextPage']),
+            "camera": state.getIn(['rover', 'photos', 'camera'])
+        })
+
+        const photosData = {
+            photos: photos,
+            nextPage: state.getIn(['rover', 'photos', 'nextPage']) + 1
+        }
+        const newState = updateState2(state, ['rover', 'photos'], photosData)
+        console.log(newState.toJS())
         console.log(currentPhotoPage)
     }
    
@@ -75,41 +104,52 @@ const getState = () => {
     return store
 }
 
+const updateState2 = (state, path, data) => {
+   
+    const newState = state.updateIn(path, val => {
+        console.log('val', val.toJS())
+        const newVal = val.set('nextPage', data.nextPage)
+        console.log('newval', newVal.toJS())
+        return newVal.update('photos', val => val.push(...data.photos))
+    })
+    store = newState
+    return newState
+}
+
 const updateState = (state, path, data) => {
     // On every update, update the global store variable
-    console.log(path,data)
+    console.log(`Updating State for Path: ${path}\nWith Data: ${data}`)
     const newState = state.setIn(path, Immutable.fromJS(data))
     store = newState;
     return newState
 }
 
-
-// Render functions --------------------------------------------------
+// Render functions -----------------------------------------------------
 const renderRover = (htmlDiv, rover) => {
     return async (state) => {
         // Update the state with the chosen rover 
-        console.log('updating state')
         const manifestData = await fetchData('/manifest', {rover_name: rover})
-        console.log('manifest data: ', manifestData)
-        const photoData = await fetchData('/photos', {
+        const photos = await fetchData('/photos', {
             "rover_name": rover, 
             "sol": manifestData.rover.max_sol, 
             "camera": 'all',
             "page": 1
         })
 
-
+        const photosData = {
+            camera: 'all',
+            photos: photos,
+            nextPage: 2
+        }
         const newState = updateState(
             state, 
             ['rover'], 
             {
                 data: manifestData['rover'],
-                photos: photoData
+                photos: photosData
             }
         )
-
-        console.log('rendered state', newState.toJS())
-        // return await App(newState)      
+        return await App(newState)      
     }
 }
 
@@ -121,7 +161,7 @@ const renderHome = (htmlDiv) => {
 
 const renderPhotos = async (state) => {
     const element = document.getElementById('rover-photos')
-    element.innerHTML = await RoverPhotos(state.get('rover'))
+    element.innerHTML = await RoverPhotos(state.getIn(['rover', 'photos', 'photos']))
 }
 
 const render = async (state, route, htmlDiv) => {
@@ -137,16 +177,17 @@ const render = async (state, route, htmlDiv) => {
 
 // Component Compiler ---------------------------------------------------
 const App = async (state) => {
-    
+    console.log('App state: ', state.toJS())
     const rovers = state.get('rovers')
-    const rover = state.get('rover')
-    const roverCams = state.getIn(['rover', 'cameras'])
-    const camera = state.getIn['rover', 'camera'] || 'all'
+    const rover = state.getIn(['rover', 'data'])
+    const roverCams = state.getIn(['rover', 'data', 'cameras'])
+    const camera = state.getIn(['rover', 'photos', 'camera']) || 'all'
+    const photos = state.getIn(['rover', 'photos', 'photos'])
 
     const navBar = NavBar(rovers)
     const Jumbo = rover ? RoverJumbo(rover): HomeJumbo(rovers)
     const photoFilter = roverCams ? PhotoFilter(roverCams, camera): "" 
-    const roverPhotos = rover ? await RoverPhotos(rover): ""
+    const roverPhotos = rover ? RoverPhotos(photos): ""
     return `
         <header>
             <section id="nav-bar">${navBar}</section>
@@ -204,14 +245,6 @@ const NavBar = (rovers) => {
 }
 
 const HomeJumbo = (rovers) => {
-    // const roverLinks = rovers.reduce((htmlString, current, idx, arr) => {
-    //     console.log(arr.size)
-    //     if (idx == arr.size -1){
-    //         return htmlString += `<span class="rover-link" id="${current.toLowerCase()}">${current}</span>`
-    //     }
-    //     return htmlString += `<span class="rover-link" id="${current.toLowerCase()}">${current}</span> | `
-    // }, "")
-
     const roverInfo = rovers.reduce((htmlString, currentRover) => {
         return htmlString += `
         <div class="col-md-4">
@@ -290,29 +323,29 @@ const PhotoFilter = (roverCameras) => {
   </nav>`
 }
 
-const RoverPhotos = async (rover) => {
+const RoverPhotos = (photos) => {
     // console.log(rover.toJS())
-    const photos = await fetchData('/photos', {
-        "rover_name": rover.get('name'), 
-        "sol": rover.get('max_sol'), 
-        "camera": rover.get('camera') || 'all',
-        "page": rover.get('page')
-    })
-
+    // const photos = await fetchData('/photos', {
+    //     "rover_name": rover.get('name'), 
+    //     "sol": rover.get('max_sol'), 
+    //     "camera": rover.get('camera') || 'all',
+    //     "page": rover.get('page')
+    // })
+    console.log('roverphotos: ', photos.toJS())
     const htmlPhotoString = photos.reduce((htmlString, currentPhoto) => {
         htmlString += `
             <div class="col mb-3">
                 <div class="card h-100">
                     <div class="card-img-frame">
-                        <img src="${currentPhoto.img_src}" class="card-img-top" alt="...">
+                        <img src="${currentPhoto.get('img_src')}" class="card-img-top" alt="...">
                     </div>
             
                     
                     <div class="card-body">
                         <ul>
-                            <li>Camera: ${currentPhoto.camera.full_name}</li>
-                            <li>Sol: ${currentPhoto.sol}</li>
-                            <li>Earth Date: ${currentPhoto.earth_date}
+                            <li>Camera: ${currentPhoto.getIn(['camera', 'full_name'])}</li>
+                            <li>Sol: ${currentPhoto.get('sol')}</li>
+                            <li>Earth Date: ${currentPhoto.get('earth_date')}
                         </ul>
                     </div>
                 </div>
@@ -334,7 +367,7 @@ const RoverPhotos = async (rover) => {
 
 // Express API Calls ----------------------------------------------------
 const fetchData = async (url, body) => {
-    console.log(body)
+    console.log(`Backend Request Body: ${body}`)
     // console.log("body: ", body)
     let response = await fetch(`http://localhost:3000${url}`, {
         method: 'POST',
