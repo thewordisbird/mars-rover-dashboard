@@ -26,6 +26,20 @@ root.addEventListener('click', event => {
     }
 })
 
+window.addEventListener('scroll', event =>{
+    const pageBottom = document.body.scrollHeight - window.innerHeight;
+    if (document.body.scrollTop == pageBottom || document.documentElement.scrollTop == pageBottom) {
+        
+        const state = getState();
+
+        const currentPhotoPage = state.getIn(['rover', 'page']) || 1;
+
+        
+        console.log(currentPhotoPage)
+    }
+   
+})
+
 // Routing and navigation -----------------------------------------------
 let routes
 
@@ -75,13 +89,27 @@ const renderRover = (htmlDiv, rover) => {
     return async (state) => {
         // Update the state with the chosen rover 
         console.log('updating state')
-        const data = await fetchData('/manifest', {rover_name: rover})
+        const manifestData = await fetchData('/manifest', {rover_name: rover})
+        console.log('manifest data: ', manifestData)
+        const photoData = await fetchData('/photos', {
+            "rover_name": rover, 
+            "sol": manifestData.rover.max_sol, 
+            "camera": 'all',
+            "page": 1
+        })
+
+
         const newState = updateState(
             state, 
             ['rover'], 
-            data['rover']
+            {
+                data: manifestData['rover'],
+                photos: photoData
+            }
         )
-        return await App(newState)      
+
+        console.log('rendered state', newState.toJS())
+        // return await App(newState)      
     }
 }
 

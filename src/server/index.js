@@ -89,7 +89,7 @@ const getRoverCams = (rover) => {
             }
         ]
     }
-    console.log(`cams for ${rover}: ${roverCameras[rover.toLowerCase()]}`)
+    
     return roverCameras[rover.toLowerCase()]
 
 }
@@ -102,15 +102,12 @@ const getRoverCams = (rover) => {
  */
 app.post('/manifest', async (req, res) => {
     const roverDataKeys = ["name", "landing_date", "launch_date", "status", "max_sol", "max_date", "total_photos"]
-    console.log(`https://api.nasa.gov/mars-photos/api/v1/manifests/${req.body.rover_name}?api_key=${process.env.API_KEY}`)
     try {
         const manifest = await fetch(`https://api.nasa.gov/mars-photos/api/v1/manifests/${req.body.rover_name}?api_key=${process.env.API_KEY}`)
             .then (res => res.json())
         // TODO: make this a call back reducer function that returns a JSON object to be returned
         const rover = Object.keys(manifest.photo_manifest).reduce( (objArray, key) => {
-            // console.log(`evaluating ${key}: ${key} in ${roverDataKeys}: ${roverDataKeys.includes(key)}`)
             if (roverDataKeys.includes(key)) {
-                console.log(`Adding ${key} to ${objArray}`)
                 objArray[key] = manifest.photo_manifest[key]
             }
             return objArray
@@ -118,7 +115,6 @@ app.post('/manifest', async (req, res) => {
         // Add rover cameras to manifest
 
         Object.assign(rover, {'cameras': getRoverCams(rover.name)})
-        console.log(rover)
         res.send({ rover })
     } catch (err) {
         console.log('error: ', err)
@@ -133,15 +129,18 @@ app.post('/manifest', async (req, res) => {
  * TODO: return only photo list. JSON too deep.
 */
 app.post('/photos', async (req, res) => {
-    console.log(req.body)
+    console.log('request body: ', req.body)
     try {
         if (req.body.camera != 'all') {
             const photos = await fetch(`https://api.nasa.gov/mars-photos/api/v1/rovers/${req.body.rover_name}/photos?sol=${req.body.sol}&page=${req.body.page}&camera=${req.body.camera}&api_key=${process.env.API_KEY}`)
                 .then (res => res.json())
+                console.log('response cam: ', photos.photos)
                 res.send(photos.photos)
         } else {
+            console.log(`NASA REQUEST: https://api.nasa.gov/mars-photos/api/v1/rovers/${req.body.rover_name}/photos?sol=${req.body.sol}&page=${req.body.page}&api_key=${process.env.API_KEY}`)
             const photos = await fetch(`https://api.nasa.gov/mars-photos/api/v1/rovers/${req.body.rover_name}/photos?sol=${req.body.sol}&page=${req.body.page}&api_key=${process.env.API_KEY}`)
                 .then (res => res.json())
+                console.log('response all: ', photos.photos)
                 res.send(photos.photos)
 
         }
