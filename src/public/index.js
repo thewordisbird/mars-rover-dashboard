@@ -7,7 +7,7 @@ root.addEventListener('click', async event => {
     if (event.target.className.includes('camera-filter-item') ) {
         const state = getState()
         
-        const prevFilter = state.getIn(['rover', 'camera']) || 'all'
+        const prevFilter = state.getIn(['rover', 'photos', 'camera']) || 'all'
         const prevFilterElement = document.getElementById(prevFilter)
         prevFilterElement.classList.remove('active')
         
@@ -16,7 +16,6 @@ root.addEventListener('click', async event => {
         
         // get data to update newState
         const camera = event.target.id
-        console.log('getting photos for camera ', camera)
         const photos = await fetchData('/photos', {
             "rover_name": state.getIn(['rover', 'data', 'name']), 
             "sol": state.getIn(['rover', 'data', 'max_sol']),
@@ -24,17 +23,16 @@ root.addEventListener('click', async event => {
             "camera": camera
         })
 
-    
+        console.log('photo count', photos.length)
         // Update state camera field
         const newState = updateState(state, ['rover', 'photos'], {
             photos: photos,
             camera: camera,
-            nextPage: 2
+            nextPage: photos.length == 25 ? 2: null
         })
         
-        console.log('Updated Camera State: ', newState.toJS())
         // render photos
-        renderPhotos(newState)
+        renderPhotos(true, newState)
         
     } else if (event.target.className === 'rover-link') {
         window.location.hash = `${event.target.id}`
@@ -49,22 +47,23 @@ window.addEventListener('scroll', async event =>{
         
         const state = getState();
 
-        const currentPhotoPage = state.getIn(['rover', 'page']) || 1;
+        if (state.getIn(['rover', 'photos', 'nextPage'])) {
+            const photos = await fetchData('/photos', {
+                "rover_name": state.getIn(['rover', 'data', 'name']), 
+                "sol": state.getIn(['rover', 'data', 'max_sol']),
+                "page": state.getIn(['rover', 'photos', 'nextPage']),
+                "camera": state.getIn(['rover', 'photos', 'camera'])
+            })
+    
+            const photosData = {
+                photos: photos,
+                nextPage: photos.length == 25 ? state.getIn(['rover', 'photos', 'nextPage']) + 1 : null
+            }
+            const newState = updateState2(state, ['rover', 'photos'], photosData)
+            renderPhotos(false, newState)
 
-        const photos = await fetchData('/photos', {
-            "rover_name": state.getIn(['rover', 'data', 'name']), 
-            "sol": state.getIn(['rover', 'data', 'max_sol']),
-            "page": state.getIn(['rover', 'photos', 'nextPage']),
-            "camera": state.getIn(['rover', 'photos', 'camera'])
-        })
-
-        const photosData = {
-            photos: photos,
-            nextPage: state.getIn(['rover', 'photos', 'nextPage']) + 1
         }
-        const newState = updateState2(state, ['rover', 'photos'], photosData)
-        console.log(newState.toJS())
-        console.log(currentPhotoPage)
+        
     }
    
 })
@@ -107,10 +106,8 @@ const getState = () => {
 const updateState2 = (state, path, data) => {
    
     const newState = state.updateIn(path, val => {
-        console.log('val', val.toJS())
         const newVal = val.set('nextPage', data.nextPage)
-        console.log('newval', newVal.toJS())
-        return newVal.update('photos', val => val.push(...data.photos))
+        return newVal.update('photos', val => val.push(...Immutable.fromJS(data.photos)))
     })
     store = newState
     return newState
@@ -118,7 +115,6 @@ const updateState2 = (state, path, data) => {
 
 const updateState = (state, path, data) => {
     // On every update, update the global store variable
-    console.log(`Updating State for Path: ${path}\nWith Data: ${data}`)
     const newState = state.setIn(path, Immutable.fromJS(data))
     store = newState;
     return newState
@@ -159,9 +155,14 @@ const renderHome = (htmlDiv) => {
     }    
 }
 
-const renderPhotos = async (state) => {
-    const element = document.getElementById('rover-photos')
-    element.innerHTML = await RoverPhotos(state.getIn(['rover', 'photos', 'photos']))
+const renderPhotos = (fromScratch, state) => {
+    console.log("State pre renderPhotos: ", state.toJS())
+    const element = document.getElementById('rover-photos-album')
+    if (fromScratch) {
+        element.innerHTML  = RoverPhotos(state.getIn(['rover', 'photos', 'photos']))
+    } else {
+        element.innerHTML += RoverPhotos(state.getIn(['rover', 'photos', 'photos']))
+    }
 }
 
 const render = async (state, route, htmlDiv) => {
@@ -187,7 +188,7 @@ const App = async (state) => {
     const navBar = NavBar(rovers)
     const Jumbo = rover ? RoverJumbo(rover): HomeJumbo(rovers)
     const photoFilter = roverCams ? PhotoFilter(roverCams, camera): "" 
-    const roverPhotos = rover ? RoverPhotos(photos): ""
+    const roverPhotos = rover ? RoverPhotosAlbum(photos): ""
     return `
         <header>
             <section id="nav-bar">${navBar}</section>
@@ -323,52 +324,58 @@ const PhotoFilter = (roverCameras) => {
   </nav>`
 }
 
-const RoverPhotos = (photos) => {
-    // console.log(rover.toJS())
-    // const photos = await fetchData('/photos', {
-    //     "rover_name": rover.get('name'), 
-    //     "sol": rover.get('max_sol'), 
-    //     "camera": rover.get('camera') || 'all',
-    //     "page": rover.get('page')
-    // })
-    console.log('roverphotos: ', photos.toJS())
-    const htmlPhotoString = photos.reduce((htmlString, currentPhoto) => {
-        htmlString += `
-            <div class="col mb-3">
-                <div class="card h-100">
-                    <div class="card-img-frame">
-                        <img src="${currentPhoto.get('img_src')}" class="card-img-top" alt="...">
-                    </div>
-            
-                    
-                    <div class="card-body">
-                        <ul>
-                            <li>Camera: ${currentPhoto.getIn(['camera', 'full_name'])}</li>
-                            <li>Sol: ${currentPhoto.get('sol')}</li>
-                            <li>Earth Date: ${currentPhoto.get('earth_date')}
-                        </ul>
-                    </div>
-                </div>
-            </div>`
-            return htmlString
-    }, "")
-           
+const RoverPhotosAlbum = (photos) => {  
     return `
     <div class="album">
         <div class="container">
-            <div class="row row-cols-1 row-cols-md-4">
-            ${htmlPhotoString}                
+            <div class="row row-cols-1 row-cols-md-4" id="rover-photos-album">
+            ${RoverPhotos(photos)}                
             </div>
         </div>
     </div>
     `
 }
 
+const RoverPhotos = (photos) => {
+    // console.log('roverphotos: ', photos.toJS())
+    const startIdx = photos.size - (photos.size % 25 == 0 ? 25 : photos.size % 25);
+    console.log(startIdx)
+    const htmlPhotoString = photos.reduce((htmlString, currentPhoto, idx) => {
+        if (idx >= startIdx) {
+            //console.log(currentPhoto.toJS())
+            console.log()
+            htmlString += `
+                <div class="col mb-3">
+                    <div class="card h-100">
+                        <div class="card-img-frame">
+                            <img src="${currentPhoto.get('img_src')}" class="card-img-top" alt="...">
+                        </div>
+                
+                        
+                        <div class="card-body">
+                            <ul>
+                                <li>Camera: ${currentPhoto.getIn(['camera', 'full_name'])}</li>
+                                <li>Sol: ${currentPhoto.get('sol')}</li>
+                                <li>Earth Date: ${currentPhoto.get('earth_date')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>`
+            return htmlString 
+        }else {
+            return ''
+        }
+        
+    }, "")
+    // console.log(htmlPhotoString)
+    return htmlPhotoString
+
+}
+
 
 // Express API Calls ----------------------------------------------------
 const fetchData = async (url, body) => {
-    console.log(`Backend Request Body: ${body}`)
-    // console.log("body: ", body)
+    
     let response = await fetch(`http://localhost:3000${url}`, {
         method: 'POST',
         headers: {
