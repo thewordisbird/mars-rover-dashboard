@@ -233,10 +233,10 @@ const NavBar = (rovers) => {
     <nav class="navbar navbar-expand-md navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="#">Mars Rovers</a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navItems" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
             </button>        
-            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <div class="collapse navbar-collapse" id="navItems">
             <ul class="navbar-nav ml-auto">
                 ${htmlNavItemString}
             </ul>
@@ -281,7 +281,7 @@ const RoverJumbo = (rover) => {
         <div class="jumbotron text-center">
             <div class="container">
                 <h1>${rover.get('name')}</h1>
-                <p>Launched: ${rover.get('launch_date')} | Landed: ${rover.get('landing_date')} | Status: ${rover.get('status')}<br>Max Date: ${rover.get('max_date')} | Max Sol: ${rover.get('max_sol')} | Total Photos: ${rover.get('total_photos')}</p>                   
+                <p class="rover-manifest-data">Launched: ${rover.get('launch_date')} | Landed: ${rover.get('landing_date')} | Status: ${rover.get('status')}<br>Max Date: ${rover.get('max_date')} | Max Sol: ${rover.get('max_sol')} | Total Photos: ${rover.get('total_photos')}</p>                   
             </div>         
         </div>    
     `     
@@ -298,11 +298,11 @@ const PhotoFilter = (roverCameras) => {
     <nav class="navbar navbar-expand-sm navbar-dark bg-dark">
     <div class="container">
         <div class="navbar-brand">Filters</div>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#filterItems" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
         </button>
     
-        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <div class="collapse navbar-collapse" id="filterItems">
         
         <ul class="navbar-nav mr-auto">
             
@@ -328,7 +328,7 @@ const RoverPhotosAlbum = (photos) => {
     return `
     <div class="album">
         <div class="container">
-            <div class="row row-cols-1 row-cols-md-4" id="rover-photos-album">
+            <div class="row row-cols-1 row-cols-sm-1 row-cols-md-3 row-cols-lg-4" id="rover-photos-album">
             ${RoverPhotos(photos)}                
             </div>
         </div>
