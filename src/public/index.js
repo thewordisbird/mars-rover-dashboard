@@ -66,25 +66,48 @@ let store;
 let routes;
 
 const resetStore = () => {
+    /**
+     * @description Sets the global store variable to an empty Immutable Map Object.
+    */
     store = Immutable.Map({});
 };
 
 const resetRoutes = () => {
+    /**
+     * @description Sets the global route variable to an empty Immutable Map Object.
+    */
     routes = Immutable.Map({});
 };
 
 const applyUpdaters = (state, updaters) => {
+    /**
+     * @description Applys state updater functions to create an updated state.
+     * @param state (Immutable Object): The state to be updated.
+     * @param updaters (func array): Array of updater functions to apply to the state.
+     * @returns (Immutable Object): Updated state.
+    */
     const startState = state;
     return updaters.reduce((newState, updater) => {
         return updater(newState);
     }, startState);
 };
+
 const pushToStore = (...updaters) => {
+    /**
+     * @description Updates the global store variable.
+     * @param updaters (func): Functions to update the state.
+     * @returns (Immutable Object): Updated state.
+    */
     store = applyUpdaters(store, updaters);
     return store;
 };
 
 const pushToRoutes = (...updaters) => {
+    /**
+     * @description Updates the global routes variable.
+     * @param updaters (func): Functions to update the routes.
+     * @returns (Immutable Object): Updated routes.
+    */
     routes = applyUpdaters(routes, updaters);
     return routes;
 };
@@ -92,32 +115,53 @@ const pushToRoutes = (...updaters) => {
 
 // Immutable Modifier And Access Functions ------------------------------
 const setState = (path, data, state) => {
-    // modifies the state wit the supplied data
+    /**
+     * @description Sets data to a path in an Immutable Object.
+     * @param path (array): Path to data to be set.
+     * @param data (Immutable Object): Data to be set.
+     * @param state (Immutable Object): Current state to be modified.
+     * @returns (Immutable Object): New application state.
+    */
     return state.setIn(path, data);
 };
 
 const getState = (path, state) => {
     /**
      * @description Read the current state of the application.
-     * @returns (immutable obj) - Application state.
+     * @returns (Immutable Object) - New application state.
     */
     return state.getIn(path);
 };
 
 const updateState = (path, updater, state) => {
+    /**
+     * @description Updates data in an Immutable Object by applying an updater to the state.
+     * @param path (array): Path to data to be set.
+     * @param updater (function): Updater to be applied.
+     * @param state (Immutable Object): Current state to be modified.
+     * @returns (Immutable Object): New application state.
+    */
     return state.updateIn(path, val => updater(val));
 };
 
 const mergeState = (data, state) => {
+    /**
+     * @description Merge data in an Immutable Object.
+     * @param data (Immutable Object): Data to be merged.
+     * @param state (Immutable Object): Current state to be modified.
+     * @returns (Immutable Object) - New application state.
+    */
     return state.merge(data);
 };
 
+
 // App Modifier And Access Functions ------------------------------------
-// Abstraction on Immutable Modifiers for specific modular tasks
+// Abstraction on Immutable Modifiers for specific modular tasks --------
+// Setters --------------------------------------------------------------
 const setStartState = () => {
     /**
-     * @description Creates a new starting state
-     * @returns (function) - Updater Function to create a new starting state
+     * @description Creates a function to set a new start state.
+     * @returns (function) - Updater Function to apply state adjustment
     */
     const data = ['Curiosity', 'Opportunity', 'Spirit'];
     return (state) => {
@@ -126,6 +170,10 @@ const setStartState = () => {
 };
 
 const setManifestData = (data) => {
+    /**
+     * @description Creates function to set the manifest data to the state.
+     * @returns (function) - Updater Function to apply state adjustment
+    */
     const path = ['rover','data'];
     return (state) => {
         return setState(path, Immutable.fromJS(data), state);
@@ -133,6 +181,10 @@ const setManifestData = (data) => {
 };
 
 const setPhotosData = (data) => {
+    /**
+     * @description Creates function to set the photo data to the state.
+     * @returns (function) - Updater Function to apply state adjustment
+    */
     const path = ['rover', 'photos'];
     return (state) => {
         return setState(path, Immutable.fromJS(data), state);
@@ -140,6 +192,10 @@ const setPhotosData = (data) => {
 };
 
 const setPhotos = (data) => {
+    /**
+     * @description Creates function to set the rover photos to the state.
+     * @returns (function) - Updater Function to apply state adjustment
+    */
     const path = ['rover', 'photos', 'photos'];
     return (state) => {
         return setState(path, Immutable.fromJS(data), state);
@@ -147,6 +203,10 @@ const setPhotos = (data) => {
 };
 
 const setCamera = (camera) => {
+    /**
+     * @description Creates function to set the camera to the state.
+     * @returns (function) - Updater Function to apply state adjustment
+    */
     const path = ['rover', 'photos', 'camera'];
     return (state) => {
         return setState(path, Immutable.fromJS(camera), state);
@@ -154,6 +214,10 @@ const setCamera = (camera) => {
 };
 
 const setHomeRoute = () => {
+    /**
+     * @description Creates function to set the home route to the routes.
+     * @returns (function) - Updater Function to apply routes adjustment
+    */
     const path = ['#'];
     return (state) => {
         return setState(path, renderHome(), state);
@@ -162,8 +226,9 @@ const setHomeRoute = () => {
 
 const setRoverRoutes = (rovers) => {
     /**
-     * @description Creates route map for rovers
-     * @returns (function) - Updater Function to create a route map for rovers
+     * @description Creates function to set the home route to the routes.
+     * @param rovers (array): Array of rovers.
+     * @returns (function) - Updater Function to apply routes adjustment
     */
     const data = rovers.reduce((acc, current) => {
         acc[`#${current.toLowerCase()}`] = renderRover(current);
@@ -177,48 +242,82 @@ const setRoverRoutes = (rovers) => {
 
 // Getters --------------------------------------------------------------
 const getRovers = () => {
+    /**
+     * @description Get the rovers.
+     * @returns (Immutable Object)
+    */
     const path = ['rovers'];
     return getState(path, store);
 };
 
 const getRover = () => {
+    /**
+     * @description Get the current rover.
+     * @returns (Immutable Object)
+    */
     const path = ['rover', 'data', 'rover'];
     return getState(path, store);
 };
 
 const getRoverName = () => {
+    /**
+     * @description Get the current rover name.
+     * @returns (Immutable Object)
+    */
     const path = ['rover', 'data', 'rover', 'name'];
     return getState(path, store);
 };
+
 const getRoverCams = () => {
+    /**
+     * @description Get the cameras availible to the current rover.
+     * @returns (Immutable Object)
+    */
     const path = ['rover', 'data', 'rover', 'cameras'];
     return getState(path, store);
 };
 
 const getCam = () => {
+    /**
+     * @description Get the current camera filter.
+     * @returns (Immutable Object)
+    */
     const path = ['rover', 'photos', 'camera'];
     return getState(path, store) || 'all';
 };
 
 const getPhotos = () => {
+    /**
+     * @description Get the photos for the current rover.
+     * @returns (Immutable Object)
+    */
     const path = ['rover', 'photos', 'photos'];
     return getState(path, store);
 };
 
 const getSol = () => {
+    /**
+     * @description Get the sol for the current rover.
+     * @returns (Immutable Object)
+    */
     const path = ['rover', 'data', 'rover', 'max_sol'];
     return getState(path, store);
 };
 
 const getNextPage = () => {
+    /**
+     * @description Get the next page for the photos.
+     * @returns (Immutable Object)
+    */
     const path = ['rover', 'photos', 'nextPage'];
     return getState(path, store);
 };
 
+
 // Updaters -------------------------------------------------------------
 const updateNextPage = (photosCount) => {
     /**
-     * @description Increments the nextPage field on the state by one
+     * @description Increments the nextPage field on the state by one if a full page is added. Otherwise null the field.
      * @returns (function) - Updater Function to return an updated state
     */
     const increment = 1;
@@ -244,14 +343,14 @@ const renderHome = () => {
 const renderRover = (rover) => {
     /**
      * @description Closure function to render the rover view for a rover at a given state.
-     * @param (str) rover - The name of the rover to be rendered.
-     * @returns (function) - Function that will render the rover html string for the given state.
+     * @param rover (str): The name of the rover to be rendered.
+     * @returns (function): Function that will render the rover html string for the given state.
     */
-    return async (state) => {
+    return async () => {
         /**
          * @description Render html string for a given state
-         * @param (immutable obj) state - The state of the application.
-         * @returns (str) - html string for the view of the rover at the given state.
+         * @param state (immutable obj): The state of the application.
+         * @returns (str): html string for the view of the rover at the given state.
         */
         const manifestData = await fetchData('/manifest', {rover_name: rover});
         
@@ -278,11 +377,11 @@ const renderRover = (rover) => {
 const renderPhotos = (fromScratch) => {
     /**
      * @description Updates the rover-photo-album element in the DOM with rover photos.
-     * @param (bool) fromScratch - Boolean indicating if the element is being appended
-     * <br>or overwritten.
+     * @param fromScratch (bool): Boolean indicating if the element is being appended or overwritten.
     */
     const element = document.getElementById('rover-photos-album');
     const photos = getPhotos();
+
     if (fromScratch) {
         element.innerHTML = RoverPhotos(photos);
     } else {
@@ -290,20 +389,25 @@ const renderPhotos = (fromScratch) => {
     }
 };
 
-const renderRoute = (route, state) => {
-    // Returns HTML to render view
-    return routes.get(route)(state);
+const renderRoute = (route) => {
+    /**
+     * @description Render the html for the given route
+     * @returns (str): html string of compenents for the route.
+    */
+    return routes.get(route)();
 };
 
 const renderView = async (route, htmlDiv) => {
-    const state = store;
-    htmlDiv.innerHTML = await renderRoute(route, state);
+    /**
+     * @description Applies html modification for a view to the DOM.
+    */
+    htmlDiv.innerHTML = await renderRoute(route);
 };
 
 const App = async () => {
     /**
      * @description Compiles components for view.
-     * @param (immutable obj) state - The state of the application.
+     * @param state (immutable obj): The state of the application.
      * @returns (str) - html string to be rendered.
     */
     const rovers = getRovers();
@@ -364,8 +468,8 @@ window.addEventListener('hashchange', () => {
 const NavBar = (rovers) => {
     /**
      * @description Creates NavBar component
-     * @param (immutable obj) rovers - The immutable list containing the availible rovers.
-     * @returns (str) - html string to be rendered.
+     * @param rovers (immutable obj): The immutable list containing the availible rovers.
+     * @returns (str): html string to be rendered.
     */
     const htmlNavItemString = rovers.reduce((htmlString, currentRover) => {
         return htmlString += `
@@ -392,6 +496,12 @@ const NavBar = (rovers) => {
 };
 
 const Banner = (BannarComponent, data=null) => {
+    /**
+     * @description Creates Banner component
+     * @param BannerComponent (function): Function to build the sub components of the banner.
+     * @param data (Immutable Object): Data to be applied to the component.
+     * @returns (str): html string to be rendered.
+    */
     return  `
         <div class="jumbotron text-center">
             <div class="container">
@@ -402,6 +512,10 @@ const Banner = (BannarComponent, data=null) => {
 };
 
 const HomeBanner = () => {
+    /**
+     * @description Creates Banner component for the Home page.
+     * @returns (str): html string to be rendered.
+    */
     return `
         <h1>Mars Rover Photo Dashboard</h1>
         <p>live status and photos for the rovers exploring the red planet</p> 
@@ -409,6 +523,11 @@ const HomeBanner = () => {
 };
 
 const RoverBanner = (rover) => {
+    /**
+     * @description Creates Banner component for the Rover Dashboard page.
+     * @param rover (Immutable Object): Function to build the sub components of the banner.
+     * @returns (str): html string to be rendered.
+    */
     return `
         <h1>${rover.get('name')}</h1>
         <p class="rover-manifest-data">Launched: ${rover.get('launch_date')} | Landed: ${rover.get('landing_date')} | Status: ${rover.get('status')}<br>Max Date: ${rover.get('max_date')} | Max Sol: ${rover.get('max_sol')} | Total Photos: ${rover.get('total_photos')}</p>
@@ -418,8 +537,8 @@ const RoverBanner = (rover) => {
 const FilterBar = (roverCameras) => {
     /**
      * @description Creates photo filter bar.
-     * @param (immutable obj) roverCameras - The immutable map containing the rover camera information.
-     * @returns (str) - html string to be rendered.
+     * @param roverCameras (immutable obj): The immutable map containing the rover camera information.
+     * @returns (str): html string to be rendered.
     */
     const htmlCameraString = roverCameras.reduce((htmlString, currentCamera) => {
         return htmlString += `<div class="dropdown-item camera-filter-item" id="${currentCamera.get('abbr')}">${currentCamera.get('name')}</div>`;
@@ -447,6 +566,12 @@ const FilterBar = (roverCameras) => {
 };
 
 const Main = (MainComponent, data) => {
+    /**
+     * @description Creates Main component
+     * @param MainComponent (function): Function to build the sub components of the banner.
+     * @param data (Immutable Object): Data to be applied to component.
+     * @returns (str): html string to be rendered.
+    */
     return `
         <div class="container">
             ${MainComponent(data)}
@@ -455,6 +580,11 @@ const Main = (MainComponent, data) => {
 };
 
 const ChooseRover = (rovers) => {
+    /**
+     * @description Component displaying choice of rover to view dashboard.
+     * @param rovers (Immutable Array): Rover options
+     * @returns (str): html string to be rendered.
+    */
     const roverInfo = rovers.reduce((htmlString, currentRover) => {
         return  htmlString += `
             <div class="col-md-4">
@@ -481,8 +611,8 @@ const ChooseRover = (rovers) => {
 const RoverPhotosAlbum = (photos) => {
     /**
      * @description Creates photo album.
-     * @param (immutable obj) photos - The immutable map containing the rover photos.
-     * @returns (str) - html string to be rendered.
+     * @param photos (immutable obj): The immutable map containing the rover photos.
+     * @returns (str): html string to be rendered.
     */
     return `
         <div class="album">
@@ -498,8 +628,8 @@ const RoverPhotosAlbum = (photos) => {
 const RoverPhotos = (photos) => {
     /**
      * @description Creates photos in photo album
-     * @param (immutable obj) photos - The immutable map containing the rover photos.
-     * @returns (str) - html string to be rendered.
+     * @param photos (immutable obj): The immutable map containing the rover photos.
+     * @returns (str): html string to be rendered.
     */
     const startIdx = photos.size - (photos.size % 25 === 0 ? 25 : photos.size % 25);
     return photos.reduce((htmlString, currentPhoto, idx) => {
