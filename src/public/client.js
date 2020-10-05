@@ -32,7 +32,7 @@ root.addEventListener('click', async event => {
         const newState = setState(state, ['rover', 'photos'], {
             photos: photos,
             camera: camera,
-            nextPage: photos.length == 25 ? 2: null
+            nextPage: photos.length === 25 ? 2: null
         });
         
         // Render photos
@@ -50,7 +50,7 @@ window.addEventListener('scroll', async () => {
      * <br>user scrolls to the bottom of the page.
     */
     const pageBottom = document.body.scrollHeight - window.innerHeight;
-    if (document.body.scrollTop == pageBottom || document.documentElement.scrollTop == pageBottom) {
+    if (document.body.scrollTop === pageBottom || document.documentElement.scrollTop === pageBottom) {
         const state = getState();
 
         if (state.getIn(['rover', 'photos', 'nextPage'])) {
@@ -65,7 +65,7 @@ window.addEventListener('scroll', async () => {
             // Create update object to update state
             const photosData = {
                 photos: photos,
-                nextPage: photos.length == 25 ? state.getIn(['rover', 'photos', 'nextPage']) + 1 : null
+                nextPage: photos.length === 25 ? state.getIn(['rover', 'photos', 'nextPage']) + 1 : null
             };
 
             // Update state
@@ -171,8 +171,7 @@ const renderRover = (rover) => {
     /**
      * @description Closure function to render the rover view for a rover at a given state.
      * @param (str) rover - The name of the rover to be rendered.
-     * @returns (function) - Function that will render the rover html string for the
-     * <br>given state.
+     * @returns (function) - Function that will render the rover html string for the given state.
     */
     return async (state) => {
         /**
@@ -248,7 +247,7 @@ const renderView = async (state, route, htmlDiv) => {
 
 
 // Component Compiler ---------------------------------------------------
-const App = async (state) => {
+const App = (state) => {
     /**
      * @description Compiles components for view.
      * @param (immutable obj) state - The state of the application.
@@ -261,13 +260,14 @@ const App = async (state) => {
     const photos = state.getIn(['rover', 'photos', 'photos']);
 
     const navBar = NavBar(rovers);
-    const banner = rover ? RoverJumbo(rover): Home(rovers);
+    // const banner = rover ? RoverJumbo(rover): Home(rovers);
+    const jumbo = Jumbo(rover ? JumboRover: JumboHome, rover);
     const photoFilter = roverCams ? PhotoFilter(roverCams, camera): '';
     const roverPhotos = rover ? RoverPhotosAlbum(photos): '';
     return `
         <header>
             <section id="nav-bar">${navBar}</section>
-            <section id="rover-jumbo">${banner}</section>
+            <section id="rover-jumbo">${jumbo}</section>
             <section id="camera-filter">${photoFilter}</section>
         </header>
         <main>
@@ -281,18 +281,19 @@ const App = async (state) => {
 // Listen for load and hashchange events to trigger appropriate routing--
 window.addEventListener('load', () => {
     const state = renewState();
+    console.log(state.get('rovers'));
     setRoutes(state, root);
     renderView(state, window.location.hash, root);
 });
 
 window.addEventListener('hashchange', () => {
     const state = renewState();
-    setRoutes(state, root);
     renderView(state, window.location.hash, root);
 });
 
 
 // Components -----------------------------------------------------------
+
 const NavBar = (rovers) => {
     /**
      * @description Creates NavBar component
@@ -323,6 +324,60 @@ const NavBar = (rovers) => {
         </nav>`;
 };
 
+const Jumbo = (generateJumboData, data=null) => {
+    return  `
+        <div class="jumbotron text-center">
+            <div class="container">
+                ${data ? generateJumboData(data): generateJumboData()}     
+            </div>   
+        </div> 
+    `;
+};
+
+const JumboHome = () => {
+    return `
+        <h1>Mars Rover Photo Dashboard</h1>
+        <p>live status and photos for the rovers exploring the red planet</p> 
+    `;
+};
+
+const JumboRover = (rover) => {
+    return `
+        <h1>${rover.get('name')}</h1>
+        <p class="rover-manifest-data">Launched: ${rover.get('launch_date')} | Landed: ${rover.get('landing_date')} | Status: ${rover.get('status')}<br>Max Date: ${rover.get('max_date')} | Max Sol: ${rover.get('max_sol')} | Total Photos: ${rover.get('total_photos')}</p>
+    `;
+};
+
+const Main = (mainComp, data, divClass) => {
+    return `
+    <div class="container ${divClass}">
+        <div class="row">
+            ${mainComp}
+        </div>
+    </div>
+    `;
+};
+
+const ChooseRover = rovers => {
+    return rovers.reduce((htmlString, currentRover) => {
+        return  htmlString += `
+            <div class="col-md-4">
+                <div class="home-rover-grid-item card">
+                    <img src="/assets/images/${currentRover}.jpg" class="card-img-top" alt="${currentRover}">
+                    <div class="card-body">
+                        <h5 class="card-title">${currentRover}</h5>
+                        <button class="btn btn-secondary rover-link-landing" value="${currentRover.toLowerCase()}">View Images »</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }, '');
+};
+
+const PhotoGallery = rover => {
+
+};
+
 const Home = (rovers) => {
     /**
      * @description Creates Home page view
@@ -330,7 +385,7 @@ const Home = (rovers) => {
      * @returns (str) - html string to be rendered.
     */
     const roverInfo = rovers.reduce((htmlString, currentRover) => {
-        return htmlString += `
+        return  htmlString += `
             <div class="col-md-4">
                 <div class="home-rover-grid-item card">
                     <img src="/assets/images/${currentRover}.jpg" class="card-img-top" alt="${currentRover}">
@@ -383,6 +438,7 @@ const PhotoFilter = (roverCameras) => {
     const htmlCameraString = roverCameras.reduce((htmlString, currentCamera) => {
         return htmlString += `<div class="dropdown-item camera-filter-item" id="${currentCamera.get('abbr')}">${currentCamera.get('name')}</div>`;
     }, '<div class="dropdown-item camera-filter-item active" id="all">All</div>');
+
     return `
         <nav class="navbar navbar-expand-sm navbar-dark bg-dark">
             <div class="container">
@@ -427,8 +483,8 @@ const RoverPhotos = (photos) => {
      * @param (immutable obj) photos - The immutable map containing the rover photos.
      * @returns (str) - html string to be rendered.
     */
-    const startIdx = photos.size - (photos.size % 25 == 0 ? 25 : photos.size % 25);
-    const htmlPhotoString = photos.reduce((htmlString, currentPhoto, idx) => {
+    const startIdx = photos.size - (photos.size % 25 === 0 ? 25 : photos.size % 25);
+    return photos.reduce((htmlString, currentPhoto, idx) => {
         if (idx >= startIdx) {
             return htmlString += `
                 <div class="col mb-3">
@@ -449,7 +505,6 @@ const RoverPhotos = (photos) => {
         }
         return '';
     }, '');
-    return htmlPhotoString;
 };
 
 
