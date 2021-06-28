@@ -1,7 +1,7 @@
 /* ------------------  GENERAL  --------------------- */
 .jumbotron {
     margin-bottom: 0;
-    background-image: url("../images/mars_horizon.jpg");
+    background-image: url("../public/images/mars_horizon.jpg");
     background-repeat: no-repeat;
     background-size: cover;
     border-radius: 0;

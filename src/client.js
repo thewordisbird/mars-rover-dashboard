@@ -1,3 +1,5 @@
+import Immutable from 'immutable';
+
 // DOM Components and event listeners -----------------------------------
 const root = document.getElementById('root');
 
@@ -596,7 +598,7 @@ const ChooseRover = (rovers) => {
         return  htmlString += `
             <div class="col-md-4">
                 <div class="home-rover-grid-item card">
-                    <img src="/assets/images/${currentRover}.jpg" class="card-img-top" alt="${currentRover}">
+                    <img src="/public/images/${currentRover}.jpg" class="card-img-top" alt="${currentRover}">
                     <div class="card-body">
                         <h5 class="card-title">${currentRover}</h5>
                         <button class="btn btn-secondary rover-link-landing" value="${currentRover.toLowerCase()}">View Images »</button>
