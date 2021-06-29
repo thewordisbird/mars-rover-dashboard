@@ -9,21 +9,18 @@ const App = () => {
    * @param state (immutable obj): The state of the application.
    * @returns (str) - html string to be rendered.
   */
-  // const rovers = getRovers();
-  // const rover = getRover();
+  const state = {}
+
+  const setRover = (rover) => {
+    console.log("Setting Rover", rover)
+    state.rover = rover
+  }
+
+  // const rover = "curiosity"
   const rover = null
-  // const roverCams = getRoverCams();
-  // const camera = getCam();
-  // const photos = getPhotos();
-  // const photos = null;
-  // const navBar = Navbar();
-  // const banner = rover ? Banner(RoverBanner, rover): Banner(HomeBanner);
-  // const filterBar = roverCams ? FilterBar(roverCams, camera): '';
-  // console.log("[App, photos]", photos);
-  // const main = photos ? Main(RoverPhotosAlbum, photos): Main(ChooseRover, rovers);
   
   // Use ternery for logic to determine "route"
-  const content = rover ? Rover(rover) : Home(rovers);
+  const content = rover ? Rover(rover) : Home(rovers, setRover);
 
   return content;
 };

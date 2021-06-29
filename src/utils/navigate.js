@@ -1,13 +1,12 @@
-import fetchRoverData from "../../utils/fetchRoverData";
-import PhotoGallery from "./photoGallery";
+// Take endpoint, and endpoint render function
+// return htmlstring
 
-const Rover = (rover) => {
-  console.log("[Rover, rover]", rover)
-  const state = {};
+import fetchRoverData from "./fetchRoverData"
 
-  (function fetchData() {
+const navigateRover = ((endpoint, renderFn) => {
+  const state = {}
     console.log("[fetchData]")
-    fetchRoverData('/manifest', {rover_name: rover})
+    const promise = fetchRoverData('/manifest', {rover_name: rover})
       .then((manifest) => {
         state.manifest = manifest;
         console.log("[Rover, fetchRoverData, manifest]", manifest);
@@ -27,26 +26,8 @@ const Rover = (rover) => {
         state.photos = photosData
         console.log("[Rover, fetchRoverData, photosData]", photosData);
       })
-
-      const status = Promise.all();
-  console.log("Promise status", status)
       
-  })();
+    Promise.allSettled(promise).then(() => renderFn(state))
+})
 
-  const status = Promise.allSettled();
-  console.log("Promise status", status)
-
-  const content = state.photos ? PhotoGallery(state.photos) : "<h1>Waiting for photos</h1>"
-
-  return `
-    ${content}
-  `
-
- 
- 
-  
-
-
-};
-
-export default Rover;
+export default navigateRover

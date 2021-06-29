@@ -2,6 +2,8 @@ import Navbar from '../Navbar/navbar';
 import Banner from '../Banner/banner';
 import images from '../../../public/images/*.jpg';
 
+
+
 const ChooseRover = (rovers) => {
   /**
    * @description Component displaying choice of rover to view dashboard.
@@ -9,15 +11,18 @@ const ChooseRover = (rovers) => {
    * @returns (str): html string to be rendered.
   */
   console.log(images)
+
+  
   const roverInfo = rovers.reduce((htmlString, currentRover) => {
       const  imgSrc = require(`../../../public/images/curiosity.jpg`)
+     
       return  htmlString += `
-          <div class="col-md-4">
+          <div class="choose-rover col-md-4">
               <div class="home-rover-grid-item card">
                   <img src="${images[currentRover.toLowerCase()]}" class="card-img-top" alt="${currentRover}">
                   <div class="card-body">
                       <h5 class="card-title">${currentRover}</h5>
-                      <button class="btn btn-secondary rover-link-landing" value="${currentRover.toLowerCase()}">View Images »</button>
+                      <button onclick="() => handleClick(${currentRover})" class="btn btn-secondary rover-link-landing" value="${currentRover.toLowerCase()}">View Images »</button>
                   </div>
               </div>
           </div>
